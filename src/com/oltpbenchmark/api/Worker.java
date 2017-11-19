@@ -324,7 +324,7 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                     // that either started during the warmup phase or ended
                     // after the timer went off.
                     if (preState == State.MEASURE && type != null && this.wrkldState.getCurrentPhase().id == phase.id) {
-                        latencies.addLatency(type.getId(), start, end, this.id, phase.id);
+                        latencies.addLatency(type.getId(), pieceOfWork.getCost(), start, end, this.id, phase.id);
                         intervalRequests.incrementAndGet();
                     }
                     if (phase.isLatencyRun())
