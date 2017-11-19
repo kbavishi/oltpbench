@@ -67,20 +67,13 @@ public class WorkloadState {
         
         @Override
         public int compare(SubmittedProcedure p1, SubmittedProcedure p2) {
-	    if (p1.getCost() == 0 && p2.getCost() == 0) {
+	    if (p1.getCost() == 0.0 && p2.getCost() == 0.0) {
 		return (int) (p1.getStartTime() - p2.getStartTime());
 	    }
 	    // Convert cost into some form of deadline, so we can simulate EDF
-	    long cost1 = p1.getStartTime() + (long) (p1.getCost() * 4000);
-	    long cost2 = p2.getStartTime() + (long) (p2.getCost() * 4000);
-
-            if (cost1 > cost2) {
-                return 1;
-            } else if (cost1 < cost2) {
-                return -1;
-	    } else {
-                return 0;
-	    }
+	    long cost1 = p1.getStartTime() + (long) (p1.getCost() * 75000);
+	    long cost2 = p2.getStartTime() + (long) (p2.getCost() * 75000);
+	    return (int) (cost1 - cost2);
         }
     };
 

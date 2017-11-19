@@ -146,7 +146,7 @@ public class Phase {
 	    return new Object[] {transType, num, cost};
 	} else {
 	    int transType = this.chooseTransaction();
-	    return new Object[] {transType, -1, 0};
+	    return new Object[] {transType, -1, (float)0.0};
 	}
 
     }

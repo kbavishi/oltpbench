@@ -46,8 +46,8 @@ public class LatencyRecord implements Iterable<LatencyRecord.Sample> {
 
 	}
 
-    public void addLatency(int transType, float cost, long startNs, long endNs,
-		    int workerId, int phaseId) {
+    public void addLatency(int transType, float cost, long startNs, long execStartNs,
+		    long endNs, int workerId, int phaseId) {
 		assert lastNs > 0;
 		assert lastNs - 500 <= startNs;
 		assert endNs >= startNs;
@@ -62,8 +62,11 @@ public class LatencyRecord implements Iterable<LatencyRecord.Sample> {
 		int latencyUs = (int) ((endNs - startNs + 500) / 1000);
 		assert latencyUs >= 0;
 
-		chunk[nextIndex] = new Sample(transType, cost, startOffsetNs, latencyUs
-				, workerId, phaseId);
+		int execLatencyUs = (int) ((endNs - execStartNs + 500) / 1000);
+		assert execLatencyUs >= 0;
+
+		chunk[nextIndex] = new Sample(transType, cost, startOffsetNs, latencyUs,
+				execLatencyUs, workerId, phaseId);
 		++nextIndex;
 
 		lastNs += startOffsetNs;
@@ -92,15 +95,17 @@ public class LatencyRecord implements Iterable<LatencyRecord.Sample> {
 		public final float cost;
 		public long startNs;
 		public final int latencyUs;
+		public final int execLatencyUs;
 		public final int workerId;
 		public final int phaseId;
 
         public Sample(int tranType, float cost, long startNs, int latencyUs,
-		int workerId, int phaseId) {
+		int execLatencyUs, int workerId, int phaseId) {
 			this.tranType = tranType;
 			this.cost = cost;
 			this.startNs = startNs;
 			this.latencyUs = latencyUs;
+			this.execLatencyUs = execLatencyUs;
 			this.workerId = workerId;
 			this.phaseId = phaseId;
 		}

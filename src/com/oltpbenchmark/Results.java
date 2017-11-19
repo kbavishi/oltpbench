@@ -164,6 +164,7 @@ public final class Results {
             "Transaction Name",
             "Start Time (microseconds)",
             "Latency (microseconds)",
+            "Exec Latency (microseconds)",
             "Plan cost",
             "Worker Id (start number)",
             "Phase Id (index in config file)"
@@ -178,6 +179,7 @@ public final class Results {
                 activeTXTypes.get(s.tranType-1).getName(),
                 String.format("%10.6f", startUs - offset),
                 Integer.toString(s.latencyUs),
+                Integer.toString(s.execLatencyUs),
 		String.format("%.2f", s.cost),
                 Integer.toString(s.workerId),
                 Integer.toString(s.phaseId),
