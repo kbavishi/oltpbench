@@ -62,7 +62,29 @@ public class WorkloadState {
         phaseIterator = works.iterator();
     }
 
-    private LinkedList<SubmittedProcedure> workQueue = new LinkedList<SubmittedProcedure>();
+    //Comparator anonymous class implementation
+    public static Comparator<SubmittedProcedure> comp = new Comparator<SubmittedProcedure>(){
+        
+        @Override
+        public int compare(SubmittedProcedure p1, SubmittedProcedure p2) {
+	    if (p1.getCost() == 0 && p2.getCost() == 0) {
+		return (int) (p1.getStartTime() - p2.getStartTime());
+	    }
+	    // Convert cost into some form of deadline, so we can simulate EDF
+	    long cost1 = p1.getStartTime() + (long) (p1.getCost() * 4000);
+	    long cost2 = p2.getStartTime() + (long) (p2.getCost() * 4000);
+
+            if (cost1 > cost2) {
+                return 1;
+            } else if (cost1 < cost2) {
+                return -1;
+	    } else {
+                return 0;
+	    }
+        }
+    };
+
+    private PriorityQueue<SubmittedProcedure> workQueue = new PriorityQueue<SubmittedProcedure>(100, comp);
     
     /**
     * Add a request to do work.
@@ -80,7 +102,12 @@ public class WorkloadState {
             // Only use the work queue if the phase is enabled and rate limited.
             if (traceReader != null && currentPhase != null) {
                 if (benchmarkState.getState() != State.WARMUP) {
-                    workQueue.addAll(traceReader.getProcedures(System.nanoTime()));
+		    LinkedList<SubmittedProcedure> list = 
+			    traceReader.getProcedures(System.nanoTime());
+		    ListIterator it = list.listIterator(0);
+		    while (it.hasNext()) {
+                        workQueue.add((SubmittedProcedure)it.next());
+		    }
                }
                    }
             else if (currentPhase == null || currentPhase.isDisabled()
@@ -100,7 +127,7 @@ public class WorkloadState {
             // Can't keep up with current rate? Remove the oldest transactions
             // (from the front of the queue).
             while(workQueue.size() > RATE_QUEUE_LIMIT) {
-                workQueue.remove();
+                workQueue.poll();
 	    }
 
             // Wake up sleeping workers to deal with the new work.
@@ -185,7 +212,7 @@ public class WorkloadState {
             // warmup stage of a script, in which case we shouldn't remove it.
             if (traceReader != null && this.benchmarkState.getState() == State.WARMUP)
                 return workQueue.peek();
-            return workQueue.remove();
+            return workQueue.poll();
         }
     }
 
