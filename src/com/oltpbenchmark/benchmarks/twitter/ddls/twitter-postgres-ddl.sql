@@ -36,6 +36,7 @@ CREATE TABLE "tweets" (
   createdate timestamp DEFAULT NULL,
   PRIMARY KEY (id)
 );
+CREATE INDEX IDX_TWEETS_UID ON "tweets" (uid);
 
 -- TODO: id AUTO_INCREMENT
 DROP TABLE IF EXISTS "added_tweets";

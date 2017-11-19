@@ -33,17 +33,32 @@ import org.apache.log4j.Logger;
 public class SubmittedProcedure {
     private final int type;
     private final long startTime;
+    private final int num;
+    private final float cost;
 
     SubmittedProcedure(int type) {
         this.type = type;
         this.startTime = System.nanoTime();
+	this.num = -1;
+	this.cost = -1;
     }
 
     SubmittedProcedure(int type, long startTime) {
         this.type = type;
         this.startTime = startTime;
+	this.num = -1;
+	this.cost = -1;
+    }
+
+    SubmittedProcedure(int type, long startTime, int num, float cost) {
+        this.type = type;
+        this.startTime = startTime;
+	this.num = num;
+	this.cost = cost;
     }
 
     public int getType() { return type; }
     public long getStartTime() { return startTime; }
+    public int getNum() { return num; }
+    public float getCost() { return cost; }
 }

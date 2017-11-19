@@ -17,9 +17,13 @@
 package com.oltpbenchmark;
 
 import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.LinkedList;
+import java.util.PriorityQueue;
 
 import com.oltpbenchmark.types.State;
 import com.oltpbenchmark.util.QueueLimitException;
@@ -36,7 +40,6 @@ public class WorkloadState {
     private static final int RATE_QUEUE_LIMIT = 10000;
     private static final Logger LOG = Logger.getLogger(ThreadBench.class);
     
-    private LinkedList<SubmittedProcedure> workQueue = new LinkedList<SubmittedProcedure>();
     private BenchmarkState benchmarkState;
     private int workersWaiting = 0;
     private int workersWorking = 0;
@@ -58,6 +61,8 @@ public class WorkloadState {
         
         phaseIterator = works.iterator();
     }
+
+    private LinkedList<SubmittedProcedure> workQueue = new LinkedList<SubmittedProcedure>();
     
     /**
     * Add a request to do work.
@@ -66,8 +71,9 @@ public class WorkloadState {
     */
    public void addToQueue(int amount, boolean resetQueues) throws QueueLimitException {
        synchronized (this) {
-            if (resetQueues)
+            if (resetQueues) {
                 workQueue.clear();
+	    }
     
             assert amount > 0;
     
@@ -84,14 +90,18 @@ public class WorkloadState {
                    }
             else {
                 // Add the specified number of procedures to the end of the queue.
-                for (int i = 0; i < amount; ++i)
-                    workQueue.add(new SubmittedProcedure(currentPhase.chooseTransaction()));
-               }
+                for (int i = 0; i < amount; ++i) {
+		    Object[] proc = currentPhase.chooseTransactionFromFile();
+                    workQueue.add(new SubmittedProcedure((int)proc[0], System.nanoTime(),
+					   (int) proc[1], (float) proc[2]));
+		}
+            }
 
             // Can't keep up with current rate? Remove the oldest transactions
             // (from the front of the queue).
-            while(workQueue.size() > RATE_QUEUE_LIMIT)
+            while(workQueue.size() > RATE_QUEUE_LIMIT) {
                 workQueue.remove();
+	    }
 
             // Wake up sleeping workers to deal with the new work.
             int numToWake = (amount <= workersWaiting? amount : workersWaiting);

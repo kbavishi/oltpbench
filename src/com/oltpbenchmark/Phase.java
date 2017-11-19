@@ -20,6 +20,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
+import java.util.Scanner;
+import java.io.File;
+import java.io.FileNotFoundException;
 
 import com.oltpbenchmark.util.StringUtil;
 
@@ -44,6 +47,9 @@ public class Phase {
     private final int num_weights;
     private int activeTerminals;
     private int nextSerial;
+
+    private File file = new File("/home/karan/input_jobs_cost.txt");
+    private Scanner input;
     
 
     Phase(String benchmarkName, int id, int t, int r, List<String> o, boolean rateLimited, boolean disabled, boolean serial, boolean timed, int activeTerminals, Arrival a) {
@@ -64,6 +70,10 @@ public class Phase {
         this.nextSerial = 1;
         this.activeTerminals = activeTerminals;
         this.arrival=a;
+	try {
+	    this.input = new Scanner(file);
+	} catch (FileNotFoundException e) {
+	}
     }
     
     public boolean isRateLimited() {
@@ -126,6 +136,20 @@ public class Phase {
     public int chooseTransaction() {
         return chooseTransaction(false);
     }
+    public Object[] chooseTransactionFromFile() {
+        if (input != null && input.hasNext()) {
+	    String nextLine = input.nextLine();
+	    String[] array = nextLine.split(",",0);
+	    int transType = Integer.parseInt(array[0]);
+	    int num = Integer.parseInt(array[1]);
+	    float cost = Float.parseFloat(array[2]);
+	    return new Object[] {transType, num, cost};
+	} else {
+	    int transType = this.chooseTransaction();
+	    return new Object[] {transType, -1, 0};
+	}
+
+    }
     public int chooseTransaction(boolean isColdQuery) {
         if (isDisabled())
             return -1;
@@ -156,16 +180,15 @@ public class Phase {
                 }
             }
             return ret;
-        }
-        else {
+	} else {
             int randomPercentage = gen.nextInt((int)totalWeight()) + 1;
-        double weight = 0.0;
-        for (int i = 0; i < this.num_weights; i++) {
-            weight += weights.get(i).doubleValue();
-            if (randomPercentage <= weight) {
-                return i + 1;
-            }
-        } // FOR
+            double weight = 0.0;
+            for (int i = 0; i < this.num_weights; i++) {
+                weight += weights.get(i).doubleValue();
+                if (randomPercentage <= weight) {
+                    return i + 1;
+                }
+            } // FOR
         }
 
         return -1;

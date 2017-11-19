@@ -72,6 +72,30 @@ public class TwitterWorker extends Worker<TwitterBenchmark> {
         return (TransactionStatus.SUCCESS);
     }
 
+    @Override
+    protected TransactionStatus executeWork(TransactionType nextTrans, int num) throws UserAbortException, SQLException {
+	if (num == -1) {
+	    return this.executeWork(nextTrans);
+	}
+        TwitterOperation t = generator.nextTransaction();
+        
+        if (nextTrans.getProcedureClass().equals(GetTweet.class)) {
+            doSelect1Tweet(num);
+        } else if (nextTrans.getProcedureClass().equals(GetTweetsFromFollowing.class)) {
+            doSelectTweetsFromPplIFollow(num);
+        } else if (nextTrans.getProcedureClass().equals(GetFollowers.class)) {
+            doSelectNamesOfPplThatFollowMe(num);
+        } else if (nextTrans.getProcedureClass().equals(GetUserTweets.class)) {
+            doSelectTweetsForUid(num);
+        } else if (nextTrans.getProcedureClass().equals(InsertTweet.class)) {
+            int len = this.tweet_len_rng.nextValue().intValue();
+            String text = TextGenerator.randomStr(this.rng(), len);
+            doInsertTweet(num, text);
+        }
+        conn.commit();
+        return (TransactionStatus.SUCCESS);
+    }
+
     public void doSelect1Tweet(int tweet_id) throws SQLException {
         GetTweet proc = this.getProcedure(GetTweet.class);
         assert (proc != null);

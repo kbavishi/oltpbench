@@ -377,7 +377,7 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                     // }
 
                     status = TransactionStatus.UNKNOWN;
-                    status = this.executeWork(next);
+                    status = this.executeWork(next, pieceOfWork.getNum());
 
                 // User Abort Handling
                 // These are not errors
@@ -529,6 +529,9 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
             if (dbType == DatabaseType.PELOTON) {
                 msg += "\nBut we are not stopping because " + dbType + " cannot handle this correctly";
                 LOG.warn(msg);
+	    } else if (dbType == DatabaseType.POSTGRES) {
+                msg += "\nBut we are not stopping because " + dbType + " cannot handle this correctly";
+                LOG.warn(msg);
             } else {
                 throw new RuntimeException(msg, ex);
             }
@@ -556,6 +559,8 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
      *             TODO
      */
     protected abstract TransactionStatus executeWork(TransactionType txnType) throws UserAbortException, SQLException;
+
+    protected abstract TransactionStatus executeWork(TransactionType txnType, int num) throws UserAbortException, SQLException;
 
     /**
      * Called at the end of the test to do any clean up that may be required.

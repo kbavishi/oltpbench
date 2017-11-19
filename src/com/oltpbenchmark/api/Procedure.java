@@ -33,7 +33,7 @@ import com.oltpbenchmark.jdbc.AutoIncrementPreparedStatement;
 import com.oltpbenchmark.types.DatabaseType;
 
 public abstract class Procedure {
-    private static final Logger LOG = Logger.getLogger(Procedure.class);
+    public static final Logger LOG = Logger.getLogger(Procedure.class);
 
     private final String procName;
     private DatabaseType dbType;
