@@ -21,6 +21,7 @@ import java.lang.reflect.Modifier;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,6 +35,8 @@ import com.oltpbenchmark.types.DatabaseType;
 
 public abstract class Procedure {
     public static final Logger LOG = Logger.getLogger(Procedure.class);
+    /* Use this to store results if you wish */
+    public ArrayList<Object> results;
 
     private final String procName;
     private DatabaseType dbType;

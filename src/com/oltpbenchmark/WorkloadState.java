@@ -17,6 +17,7 @@
 package com.oltpbenchmark;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Iterator;
@@ -38,6 +39,7 @@ import org.apache.log4j.Logger;
  */
 public class WorkloadState {
     private static final int RATE_QUEUE_LIMIT = 10000;
+    private static final int RESULTS_QUEUE_LIMIT = 5;
     private static final Logger LOG = Logger.getLogger(ThreadBench.class);
     
     private BenchmarkState benchmarkState;
@@ -51,6 +53,9 @@ public class WorkloadState {
     private Phase currentPhase = null;
     private long phaseStartNs = 0;
     private TraceReader traceReader = null;
+
+    private LinkedList<HashMap<Long, Boolean>> resultsQueue =
+	    new LinkedList<HashMap<Long, Boolean>>();
     
     public WorkloadState(BenchmarkState benchmarkState, List<Phase> works, int num_terminals, TraceReader traceReader) {
         this.benchmarkState = benchmarkState;
@@ -111,9 +116,39 @@ public class WorkloadState {
             else {
                 // Add the specified number of procedures to the end of the queue.
                 for (int i = 0; i < amount; ++i) {
+		    
+		    // Pick transaction to be run from file. It will fallback
+		    // to the regular generation method if input file is empty
 		    Object[] proc = currentPhase.chooseTransactionFromFile();
+		    ArrayList<Long> pred = (ArrayList<Long>) proc[3];
+		    float cost = (float) proc[2];
+
+		    if (pred != null) {
+			// Check if we ran some query in the past with similar predicates
+			Iterator it = pred.iterator();
+			float reduction = (float) 0.0;
+			HashMap<Long, Boolean> map;
+
+			// Iterate over all the predicate values
+			while (it.hasNext()) {
+			    Long predUid = (Long) it.next();
+			    Iterator resIt = resultsQueue.iterator();
+
+			    // Iterate over all past query result predicates
+			    while (resIt.hasNext()) {
+				map = (HashMap<Long, Boolean>) resIt.next();
+				if (map.containsKey(predUid)) {
+				    // Reduction is roughly 599.95 per
+				    // predicate. We reduce by close to 50%
+				    reduction += 270.0;
+				    break;
+				}
+			    }
+			}
+			cost -= reduction;
+		    }
                     workQueue.add(new SubmittedProcedure((int)proc[0], System.nanoTime(),
-					   (int) proc[1], (float) proc[2]));
+					   (int) proc[1], cost));
 		}
             }
 
@@ -206,6 +241,22 @@ public class WorkloadState {
             if (traceReader != null && this.benchmarkState.getState() == State.WARMUP)
                 return workQueue.peek();
             return workQueue.poll();
+        }
+    }
+
+    public void updateTweetResults(ArrayList<Object> results) {
+	Iterator it = results.iterator();
+	HashMap<Long, Boolean> map = new HashMap<Long, Boolean>();
+        while (it.hasNext()) {
+	    Long nextElem = (Long) it.next();
+	    map.put(nextElem, true);
+	}
+        synchronized (this) {
+	    resultsQueue.add(map);
+	    while (resultsQueue.size() > RESULTS_QUEUE_LIMIT) {
+                resultsQueue.remove();
+	    }
+            
         }
     }
 

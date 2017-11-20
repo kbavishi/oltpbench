@@ -143,10 +143,18 @@ public class Phase {
 	    int transType = Integer.parseInt(array[0]);
 	    int num = Integer.parseInt(array[1]);
 	    float cost = Float.parseFloat(array[2]);
-	    return new Object[] {transType, num, cost};
+	    ArrayList<Long> pred = null;
+	    if (array.length > 3) {
+		pred = new ArrayList<Long>(array.length-3);
+	        for (int i=3; i<array.length; i++) {
+                    pred.add(Long.parseLong(array[i]));
+	        }
+	    }
+	    //return new Object[] {transType, num, cost, pred};
+	    return new Object[] {transType, num, cost, pred};
 	} else {
 	    int transType = this.chooseTransaction();
-	    return new Object[] {transType, -1, (float)0.0};
+	    return new Object[] {transType, -1, (float)0.0, null};
 	}
 
     }

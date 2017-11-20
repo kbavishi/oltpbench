@@ -20,6 +20,7 @@ import java.sql.Connection;
 import java.sql.Statement;
 import java.sql.SQLException;
 import java.sql.Savepoint;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -67,6 +68,9 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
     private final Map<TransactionType, Histogram<String>> txnAbortMessages = new HashMap<TransactionType, Histogram<String>>();
 
     private boolean seenDone = false;
+
+    /* Use this to store results if you wish */
+    public ArrayList<Object> results;
 
     public Worker(T benchmarkModule, int id) {
         this.id = id;
@@ -341,6 +345,10 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                     // Do nothing
             }
 
+	    if (this.results != null) {
+                wrkldState.updateTweetResults(this.results);
+		this.results = null;
+	    }
             wrkldState.finishedWork();
         }
 
