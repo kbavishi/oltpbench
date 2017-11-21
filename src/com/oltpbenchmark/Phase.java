@@ -72,7 +72,7 @@ public class Phase {
         this.activeTerminals = activeTerminals;
         this.arrival=a;
 	try {
-	    this.input = new BufferedReader(new FileReader("/home/karan/input_jobs_cost.txt"));
+	    this.input = new BufferedReader(new FileReader("/home/karan/input_jobs_loc_cost.txt"));
 	} catch (FileNotFoundException e) {
 	}
     }
