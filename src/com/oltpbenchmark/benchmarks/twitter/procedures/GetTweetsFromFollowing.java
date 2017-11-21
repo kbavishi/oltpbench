@@ -17,6 +17,8 @@
 
 package com.oltpbenchmark.benchmarks.twitter.procedures;
 
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -43,20 +45,27 @@ public class GetTweetsFromFollowing extends Procedure {
         PreparedStatement stmt = this.getPreparedStatement(conn, getFollowing);
         stmt.setLong(1, uid);
         ResultSet rs = stmt.executeQuery();
+	ArrayList<Long> following = new ArrayList<Long>(TwitterConstants.LIMIT_FOLLOWERS);
+	while (rs.next()) {
+	    following.add(rs.getLong(1));
+	}
         
-        stmt = this.getPreparedStatement(conn, getTweets);
+        SQLStmt getTweetsCompact = new SQLStmt(
+            "SELECT * FROM " + TwitterConstants.TABLENAME_TWEETS +
+            " WHERE uid IN (??)", following.size()
+        );
+        stmt = this.getPreparedStatement(conn, getTweetsCompact);
+	Iterator it = following.iterator();
         int ctr = 0;
-        long last = -1;
-        while (rs.next() && ctr++ < TwitterConstants.LIMIT_FOLLOWERS) {
-            last = rs.getLong(1);
-            stmt.setLong(ctr, last);
+        while (it.hasNext()) {
+	    ctr++;
+	    Long nextElem = (Long) it.next();
+            stmt.setLong(ctr, nextElem.longValue());
             
         } // WHILE
         rs.close();
+
         if (ctr > 0) {
-            while (ctr++ < TwitterConstants.LIMIT_FOLLOWERS) {
-                stmt.setLong(ctr, last);
-            } // WHILE     
             rs = stmt.executeQuery();
             rs.close();
         }

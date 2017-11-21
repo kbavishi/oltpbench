@@ -20,9 +20,11 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
-import java.util.Scanner;
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 
 import com.oltpbenchmark.util.StringUtil;
 
@@ -48,8 +50,7 @@ public class Phase {
     private int activeTerminals;
     private int nextSerial;
 
-    private File file = new File("/home/karan/input_jobs_cost.txt");
-    private Scanner input;
+    private BufferedReader input;
     
 
     Phase(String benchmarkName, int id, int t, int r, List<String> o, boolean rateLimited, boolean disabled, boolean serial, boolean timed, int activeTerminals, Arrival a) {
@@ -71,7 +72,7 @@ public class Phase {
         this.activeTerminals = activeTerminals;
         this.arrival=a;
 	try {
-	    this.input = new Scanner(file);
+	    this.input = new BufferedReader(new FileReader("/home/karan/input_jobs_cost.txt"));
 	} catch (FileNotFoundException e) {
 	}
     }
@@ -137,26 +138,29 @@ public class Phase {
         return chooseTransaction(false);
     }
     public Object[] chooseTransactionFromFile() {
-        if (input != null && input.hasNext()) {
-	    String nextLine = input.nextLine();
-	    String[] array = nextLine.split(",",0);
-	    int transType = Integer.parseInt(array[0]);
-	    int num = Integer.parseInt(array[1]);
-	    float cost = Float.parseFloat(array[2]);
-	    ArrayList<Long> pred = null;
-	    if (array.length > 3) {
-		pred = new ArrayList<Long>(array.length-3);
-	        for (int i=3; i<array.length; i++) {
-                    pred.add(Long.parseLong(array[i]));
-	        }
+        if (input != null) {
+	    String nextLine = null;
+	    try {
+	        nextLine = input.readLine();
+	    } catch (IOException e) {
 	    }
-	    //return new Object[] {transType, num, cost, pred};
-	    return new Object[] {transType, num, cost, pred};
-	} else {
-	    int transType = this.chooseTransaction();
-	    return new Object[] {transType, -1, (float)0.0, null};
+	    if (nextLine != null) {
+	        String[] array = nextLine.split(",",0);
+	        int transType = Integer.parseInt(array[0]);
+	        int num = Integer.parseInt(array[1]);
+	        float cost = Float.parseFloat(array[2]);
+	        ArrayList<Long> pred = null;
+	        if (array.length > 3) {
+	            pred = new ArrayList<Long>(array.length-3);
+	            for (int i=3; i<array.length; i++) {
+                        pred.add(Long.parseLong(array[i]));
+	            }
+	        }
+	        return new Object[] {transType, num, cost, pred};
+	    }
 	}
-
+	int transType = this.chooseTransaction();
+	return new Object[] {transType, -1, (float)0.0, null};
     }
     public int chooseTransaction(boolean isColdQuery) {
         if (isDisabled())
