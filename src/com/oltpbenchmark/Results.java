@@ -33,6 +33,7 @@ import com.oltpbenchmark.util.StringUtil;
 public final class Results {
     public final long nanoSeconds;
     public final int measuredRequests;
+    public final int droppedRequests;
     public final DistributionStatistics latencyDistribution;
     final Histogram<TransactionType> txnSuccess = new Histogram<TransactionType>(true);
     final Histogram<TransactionType> txnAbort = new Histogram<TransactionType>(true);
@@ -42,9 +43,10 @@ public final class Results {
     
     public final List<LatencyRecord.Sample> latencySamples;
 
-    public Results(long nanoSeconds, int measuredRequests, DistributionStatistics latencyDistribution, final List<LatencyRecord.Sample> latencySamples) {
+    public Results(long nanoSeconds, int measuredRequests, int droppedRequests, DistributionStatistics latencyDistribution, final List<LatencyRecord.Sample> latencySamples) {
         this.nanoSeconds = nanoSeconds;
         this.measuredRequests = measuredRequests;
+        this.droppedRequests = droppedRequests;
         this.latencyDistribution = latencyDistribution;
 
         if (latencyDistribution == null) {
@@ -82,7 +84,9 @@ public final class Results {
 
     @Override
     public String toString() {
-        return "Results(nanoSeconds=" + nanoSeconds + ", measuredRequests=" + measuredRequests + ") = " + getRequestsPerSecond() + " requests/sec";
+	return "Results(nanoSeconds=" + nanoSeconds + ", measuredRequests=" +
+		measuredRequests + ", droppedRequests=" + droppedRequests +
+		") = " + getRequestsPerSecond() + " requests/sec";
     }
 
     public void writeCSV(int windowSizeSeconds, PrintStream out) {
