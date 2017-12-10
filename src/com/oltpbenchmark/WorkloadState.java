@@ -47,6 +47,7 @@ public class WorkloadState {
     private int workersWorking = 0;
     private int num_terminals;
     private int workerNeedSleep;
+    private int droppedTransactions = 0;
     
     private List<Phase> works = new ArrayList<Phase>();
     private Iterator<Phase> phaseIterator;
@@ -250,11 +251,12 @@ public class WorkloadState {
 
 	    // Remove transactions which will not complete within the deadlines
 	    long currentTime = System.nanoTime();
-            while(workQueue.size() > 0) {
+            while(workQueue.size() > 1) {
 		SubmittedProcedure proc = workQueue.peek();
 		if (currentTime + proc.getExecTime() > proc.getDeadlineTime()) {
 		    // Can not complete this transaction. Just drop it
 		    workQueue.poll();
+		    droppedTransactions++;
 		} else {
 		    break;
 		}
@@ -278,6 +280,10 @@ public class WorkloadState {
 	    }
             
         }
+    }
+
+    public int getDroppedTransactions() {
+        return droppedTransactions;
     }
 
     public void finishedWork() {

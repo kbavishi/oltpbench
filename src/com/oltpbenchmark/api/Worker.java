@@ -156,6 +156,10 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
         return latencies;
     }
 
+    public final int getDroppedTransactions() {
+        return (this.wrkldState.getDroppedTransactions());
+    }
+
     public final Procedure getProcedure(TransactionType type) {
         return (this.procedures.get(type));
     }
