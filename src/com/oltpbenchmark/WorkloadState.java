@@ -74,11 +74,9 @@ public class WorkloadState {
         public int compare(SubmittedProcedure p1, SubmittedProcedure p2) {
 	    if (p1.getCost() == 0.0 && p2.getCost() == 0.0) {
 		return (int) (p1.getStartTime() - p2.getStartTime());
+	    } else {
+		return (int) (p1.getDeadlineTime() - p2.getDeadlineTime());
 	    }
-	    // Convert cost into some form of deadline, so we can simulate EDF
-	    long cost1 = p1.getStartTime() + (long) (p1.getCost() * 75000);
-	    long cost2 = p2.getStartTime() + (long) (p2.getCost() * 75000);
-	    return (int) (cost1 - cost2);
         }
     };
 
@@ -120,6 +118,11 @@ public class WorkloadState {
 		    // Pick transaction to be run from file. It will fallback
 		    // to the regular generation method if input file is empty
 		    Object[] proc = currentPhase.chooseTransactionFromFile();
+
+		    int type = (int) proc[0];
+		    long startTime = System.nanoTime();
+		    int num = (int) proc[1];
+		    float cost = (float) proc[2];
 		    ArrayList<Long> pred = (ArrayList<Long>) proc[3];
 		    float cost = (float) proc[2];
 
@@ -147,8 +150,13 @@ public class WorkloadState {
 			}
 			cost -= reduction;
 		    }
-                    workQueue.add(new SubmittedProcedure((int)proc[0], System.nanoTime(),
-					   (int) proc[1], cost));
+
+		    // Convert cost into some form of deadline, so we can simulate EDF
+		    long execTime = (long) (cost * 75000);
+		    long deadlineTime = startTime + 2 * execTime;
+
+                    workQueue.add(new SubmittedProcedure(type, startTime,
+					    num, cost, execTime, deadlineTime));
 		}
             }
 
@@ -240,6 +248,19 @@ public class WorkloadState {
             // warmup stage of a script, in which case we shouldn't remove it.
             if (traceReader != null && this.benchmarkState.getState() == State.WARMUP)
                 return workQueue.peek();
+
+	    // Remove transactions which will not complete within the deadlines
+	    long currentTime = System.nanoTime();
+            while(workQueue.size() > 0) {
+		SubmittedProcedure proc = workQueue.peek();
+		if (currentTime + proc.getExecTime() > proc.getDeadlineTime()) {
+		    // Can not complete this transaction. Just drop it
+		    workQueue.poll();
+		} else {
+		    break;
+		}
+	    }
+
             return workQueue.poll();
         }
     }

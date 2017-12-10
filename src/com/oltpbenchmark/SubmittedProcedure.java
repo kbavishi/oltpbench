@@ -35,12 +35,16 @@ public class SubmittedProcedure {
     private final long startTime;
     private final int num;
     private final float cost;
+    private final long execTime;
+    private final long deadlineTime;
 
     SubmittedProcedure(int type) {
         this.type = type;
         this.startTime = System.nanoTime();
 	this.num = -1;
 	this.cost = -1;
+	this.execTime = -1;
+	this.deadlineTime = -1;
     }
 
     SubmittedProcedure(int type, long startTime) {
@@ -48,17 +52,24 @@ public class SubmittedProcedure {
         this.startTime = startTime;
 	this.num = -1;
 	this.cost = -1;
+	this.execTime = -1;
+	this.deadlineTime = -1;
     }
 
-    SubmittedProcedure(int type, long startTime, int num, float cost) {
+    SubmittedProcedure(int type, long startTime, int num, float cost,
+		    long execTime, long deadlineTime) {
         this.type = type;
         this.startTime = startTime;
 	this.num = num;
 	this.cost = cost;
+	this.execTime = execTime;
+        this.deadlineTime = deadlineTime;
     }
 
     public int getType() { return type; }
     public long getStartTime() { return startTime; }
     public int getNum() { return num; }
     public float getCost() { return cost; }
+    public long getExecTime() { return execTime; }
+    public long getDeadlineTime() { return deadlineTime; }
 }
