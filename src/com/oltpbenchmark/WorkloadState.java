@@ -219,7 +219,7 @@ public class WorkloadState {
 
 	    // Remove transactions which will not complete within the deadlines
 	    long currentTime = System.nanoTime();
-            while(workQueue.size() > 0) {
+            while(workQueue.size() > 1) {
 		SubmittedProcedure proc = workQueue.peek();
 		if (currentTime + proc.getExecTime() > proc.getDeadlineTime()) {
 		    // Can not complete this transaction. Just drop it
