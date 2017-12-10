@@ -124,7 +124,6 @@ public class WorkloadState {
 		    int num = (int) proc[1];
 		    float cost = (float) proc[2];
 		    ArrayList<Long> pred = (ArrayList<Long>) proc[3];
-		    float cost = (float) proc[2];
 
 		    if (pred != null) {
 			// Check if we ran some query in the past with similar predicates
