@@ -112,8 +112,18 @@ public class WorkloadState {
                 // Add the specified number of procedures to the end of the queue.
                 for (int i = 0; i < amount; ++i) {
 		    Object[] proc = currentPhase.chooseTransactionFromFile();
-                    workQueue.add(new SubmittedProcedure((int)proc[0], System.nanoTime(),
-					   (int) proc[1], (float) proc[2]));
+
+		    int type = (int) proc[0];
+		    long startTime = System.nanoTime();
+		    int num = (int) proc[1];
+		    float cost = (float) proc[2];
+
+		    // Convert cost into some form of deadline, so we can simulate EDF
+		    long execTime = (long) (cost * 75000);
+		    long deadlineTime = startTime + 2 * execTime;
+
+                    workQueue.add(new SubmittedProcedure(type, startTime,
+					    num, cost, execTime, deadlineTime));
 		}
             }
 
@@ -205,6 +215,19 @@ public class WorkloadState {
             // warmup stage of a script, in which case we shouldn't remove it.
             if (traceReader != null && this.benchmarkState.getState() == State.WARMUP)
                 return workQueue.peek();
+
+	    // Remove transactions which will not complete within the deadlines
+	    long currentTime = System.nanoTime();
+            while(workQueue.size() > 0) {
+		SubmittedProcedure proc = workQueue.peek();
+		if (currentTime + proc.getExecTime() > proc.getDeadlineTime()) {
+		    // Can not complete this transaction. Just drop it
+		    workQueue.poll();
+		} else {
+		    break;
+		}
+	    }
+
             return workQueue.poll();
         }
     }
