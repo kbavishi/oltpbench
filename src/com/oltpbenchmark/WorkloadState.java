@@ -113,50 +113,52 @@ public class WorkloadState {
                 return;
                    }
             else {
-                // Add the specified number of procedures to the end of the queue.
-                for (int i = 0; i < amount; ++i) {
-		    
-		    // Pick transaction to be run from file. It will fallback
-		    // to the regular generation method if input file is empty
-		    Object[] proc = currentPhase.chooseTransactionFromFile();
+                if (benchmarkState.getState() != State.WARMUP) {
+                    // Add the specified number of procedures to the end of the queue.
+                    for (int i = 0; i < amount; ++i) {
+		        
+		        // Pick transaction to be run from file. It will fallback
+		        // to the regular generation method if input file is empty
+		        Object[] proc = currentPhase.chooseTransactionFromFile();
 
-		    int type = (int) proc[0];
-		    long startTime = System.nanoTime();
-		    int num = (int) proc[1];
-		    float cost = (float) proc[2];
-		    ArrayList<Long> pred = (ArrayList<Long>) proc[3];
+		        int type = (int) proc[0];
+		        long startTime = System.nanoTime();
+		        int num = (int) proc[1];
+		        float cost = (float) proc[2];
+		        ArrayList<Long> pred = (ArrayList<Long>) proc[3];
 
-		    if (pred != null) {
-			// Check if we ran some query in the past with similar predicates
-			Iterator it = pred.iterator();
-			float reduction = (float) 0.0;
-			HashMap<Long, Boolean> map;
+		        if (pred != null) {
+		    	// Check if we ran some query in the past with similar predicates
+		    	Iterator it = pred.iterator();
+		    	float reduction = (float) 0.0;
+		    	HashMap<Long, Boolean> map;
 
-			// Iterate over all the predicate values
-			while (it.hasNext()) {
-			    Long predUid = (Long) it.next();
-			    Iterator resIt = resultsQueue.iterator();
+		    	// Iterate over all the predicate values
+		    	while (it.hasNext()) {
+		    	    Long predUid = (Long) it.next();
+		    	    Iterator resIt = resultsQueue.iterator();
 
-			    // Iterate over all past query result predicates
-			    while (resIt.hasNext()) {
-				map = (HashMap<Long, Boolean>) resIt.next();
-				if (map.containsKey(predUid)) {
-				    // Reduction is roughly 599.95 per
-				    // predicate. We reduce by close to 50%
-				    reduction += 270.0;
-				    break;
-				}
-			    }
-			}
-			cost -= reduction;
+		    	    // Iterate over all past query result predicates
+		    	    while (resIt.hasNext()) {
+		    		map = (HashMap<Long, Boolean>) resIt.next();
+		    		if (map.containsKey(predUid)) {
+		    		    // Reduction is roughly 599.95 per
+		    		    // predicate. We reduce by close to 50%
+		    		    reduction += 270.0;
+		    		    break;
+		    		}
+		    	    }
+		    	}
+		    	cost -= reduction;
+		        }
+
+		        // Convert cost into some form of deadline, so we can simulate EDF
+		        long execTime = (long) (cost * 75000);
+		        long deadlineTime = startTime + 2 * execTime;
+
+                        workQueue.add(new SubmittedProcedure(type, startTime,
+		    			    num, cost, execTime, deadlineTime));
 		    }
-
-		    // Convert cost into some form of deadline, so we can simulate EDF
-		    long execTime = (long) (cost * 75000);
-		    long deadlineTime = startTime + 2 * execTime;
-
-                    workQueue.add(new SubmittedProcedure(type, startTime,
-					    num, cost, execTime, deadlineTime));
 		}
             }
 
