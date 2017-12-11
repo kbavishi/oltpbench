@@ -75,11 +75,12 @@ public class WorkloadState {
         public int compare(SubmittedProcedure p1, SubmittedProcedure p2) {
 	    if (p1.getCost() == 0.0 && p2.getCost() == 0.0) {
 		return (int) (p1.getStartTime() - p2.getStartTime());
-	    } else if (p1.getDeadlineTime() != p2.getDeadlineTime()) {
-		return (int) (p1.getDeadlineTime() - p2.getDeadlineTime());
-	    } else {
-		// Equal deadline time. So same group in gEDF. SJF within group
+	    } else if (0.6 * p2.getDeadlineTime() <= p1.getDeadlineTime() &&
+		       p1.getDeadlineTime() <= 1.4 * p2.getDeadlineTime()) {
+		// Equal deadline group. So same group in gEDF. SJF within group
 		return (int) (p1.getExecTime() - p2.getExecTime());
+	    } else {
+		return (int) (p1.getDeadlineTime() - p2.getDeadlineTime());
 	    }
         }
     };
@@ -158,11 +159,9 @@ public class WorkloadState {
 		        // Convert cost into some form of deadline, so we can simulate EDF
 		        long execTime = (long) (cost * 75000);
 		        long deadlineTime = startTime + 10 * execTime;
-			// Round deadline to the nearest 100 msec
-			long roundedDeadlineTime = (deadlineTime + 50000000) / 100000000 * 100000000;
 
                         workQueue.add(new SubmittedProcedure(type, startTime,
-		    			    num, cost, execTime, roundedDeadlineTime));
+		    			    num, cost, execTime, deadlineTime));
 		    }
 		}
             }
