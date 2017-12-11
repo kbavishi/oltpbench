@@ -159,7 +159,7 @@ public class WorkloadState {
 		        long execTime = (long) (cost * 75000);
 		        long deadlineTime = startTime + 10 * execTime;
 			// Round deadline to the nearest 100 msec
-			long roundedDeadlineTime = (deadlineTime + 50000000) / 100000000 * 100000000
+			long roundedDeadlineTime = (deadlineTime + 50000000) / 100000000 * 100000000;
 
                         workQueue.add(new SubmittedProcedure(type, startTime,
 		    			    num, cost, execTime, roundedDeadlineTime));
