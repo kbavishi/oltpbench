@@ -489,14 +489,17 @@ public class ThreadBench implements Thread.UncaughtExceptionHandler {
         try {
             int requests = finalizeWorkers(this.workerThreads);
 
+	    // Get dropped transactions count
+	    int droppedTransactions = 0;
+            for (WorkloadState workState : this.workStates) {
+		droppedTransactions += workState.getDroppedTransactions();
+	    }
+
             // Combine all the latencies together in the most disgusting way
             // possible: sorting!
-	    int droppedTransactions = 0;
             for (Worker<?> w : workers) {
                 for (LatencyRecord.Sample sample : w.getLatencyRecords()) {
                     samples.add(sample);
-		    // Also get dropped transaction count
-		    droppedTransactions += w.getDroppedTransactions();
                 }
             }
             Collections.sort(samples);
