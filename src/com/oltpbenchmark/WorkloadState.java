@@ -110,21 +110,23 @@ public class WorkloadState {
                 return;
                    }
             else {
-                // Add the specified number of procedures to the end of the queue.
-                for (int i = 0; i < amount; ++i) {
-		    Object[] proc = currentPhase.chooseTransactionFromFile();
+                if (benchmarkState.getState() != State.WARMUP) {
+                    // Add the specified number of procedures to the end of the queue.
+                    for (int i = 0; i < amount; ++i) {
+		        Object[] proc = currentPhase.chooseTransactionFromFile();
 
-		    int type = (int) proc[0];
-		    long startTime = System.nanoTime();
-		    int num = (int) proc[1];
-		    float cost = (float) proc[2];
+		        int type = (int) proc[0];
+		        long startTime = System.nanoTime();
+		        int num = (int) proc[1];
+		        float cost = (float) proc[2];
 
-		    // Convert cost into some form of deadline, so we can simulate EDF
-		    long execTime = (long) (cost * 75000);
-		    long deadlineTime = startTime + 2 * execTime;
+		        // Convert cost into some form of deadline, so we can simulate EDF
+		        long execTime = (long) (cost * 75000);
+		        long deadlineTime = startTime + 2 * execTime;
 
-                    workQueue.add(new SubmittedProcedure(type, startTime,
-					    num, cost, execTime, deadlineTime));
+                        workQueue.add(new SubmittedProcedure(type, startTime,
+		    			    num, cost, execTime, deadlineTime));
+		    }
 		}
             }
 
