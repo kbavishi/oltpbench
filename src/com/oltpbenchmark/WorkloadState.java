@@ -154,7 +154,7 @@ public class WorkloadState {
 
 		        // Convert cost into some form of deadline, so we can simulate EDF
 		        long execTime = (long) (cost * 75000);
-		        long deadlineTime = startTime + 2 * execTime;
+		        long deadlineTime = startTime + 10 * execTime;
 
                         workQueue.add(new SubmittedProcedure(type, startTime,
 		    			    num, cost, execTime, deadlineTime));
