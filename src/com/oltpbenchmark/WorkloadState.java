@@ -47,7 +47,7 @@ import org.apache.log4j.Logger;
 public class WorkloadState {
     private static final int RATE_QUEUE_LIMIT = 10000;
     // Choose a random page cost slightly lower than the Postgres value
-    private static final float RANDOM_PAGE_COST = (float) 3.9;
+    private static final float RANDOM_PAGE_COST = (float) 18.5;
 
     private static final Logger LOG = Logger.getLogger(ThreadBench.class);
     
@@ -233,7 +233,7 @@ public class WorkloadState {
                                     if (oldPLA) {
                                         // Reduction is roughly 599.95 per
                                         // predicate. We reduce by close to 50%
-                                        reduction += 270.0;
+                                        reduction += 1500.0;
                                     } else {
                                         float freq = 0;
                                         if (tweetRelFreqMap.containsKey(predUid)) {
@@ -250,7 +250,7 @@ public class WorkloadState {
                         }
 
                         // Convert cost into some form of deadline, so we can simulate EDF
-                        long execTime = (long) (cost * costSlope.getOrDefault(type, 120000.0));
+                        long execTime = (long) (cost * costSlope.getOrDefault(type, 25000.0));
                         long deadlineTime = startTime + 10 * execTime;
 
                         workQueue.add(new SubmittedProcedure(type, startTime,
