@@ -23,7 +23,7 @@ def get_exec_nums(filename):
         tokens = line.split(",")
         qtype, exec_time, cost, exp_exec_time = \
             tokens[0], tokens[4], tokens[5], tokens[6]
-        nums += ["%s,%s,%s,%s" % (qtype, exec_time, cost, exec_time)]
+        nums += ["%s,%s,%s,%s" % (qtype, exec_time, cost, exp_exec_time)]
 
     return nums
         
