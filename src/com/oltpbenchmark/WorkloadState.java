@@ -16,6 +16,10 @@
 
 package com.oltpbenchmark;
 
+import java.io.BufferedReader;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Comparator;
@@ -25,7 +29,9 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.LinkedList;
 import java.util.PriorityQueue;
+import java.util.Queue;
 
+import com.oltpbenchmark.types.SchedPolicy;
 import com.oltpbenchmark.types.State;
 import com.oltpbenchmark.util.QueueLimitException;
 import org.apache.log4j.Logger;
@@ -39,7 +45,9 @@ import org.apache.log4j.Logger;
  */
 public class WorkloadState {
     private static final int RATE_QUEUE_LIMIT = 10000;
-    private static final int RESULTS_QUEUE_LIMIT = 5;
+    // Choose a random page cost slightly lower than the Postgres value
+    private static final float RANDOM_PAGE_COST = (float) 3.9;
+
     private static final Logger LOG = Logger.getLogger(ThreadBench.class);
     
     private BenchmarkState benchmarkState;
@@ -55,37 +63,111 @@ public class WorkloadState {
     private long phaseStartNs = 0;
     private TraceReader traceReader = null;
 
-    private LinkedList<HashMap<Long, Boolean>> resultsQueue =
-	    new LinkedList<HashMap<Long, Boolean>>();
+    private LinkedList<LinkedList<Long>> resultsQueue = new LinkedList<LinkedList<Long>>();
+    private HashMap<Long, Integer> resultsUnion = new HashMap<Long, Integer>();
+
+    private int schedPolicy;
+    private int RESULTS_QUEUE_LIMIT;
+    private Queue<SubmittedProcedure> workQueue;
+
+    private int tweetRelPages;
+    private int tweetRelTuples;
+    private int tweetRelNDistinct;
+    private float tweetRelSumFreq = (float) 0.0;
+    private HashMap<Integer, Float> tweetRelFreqMap = new HashMap<Integer, Float>();
     
-    public WorkloadState(BenchmarkState benchmarkState, List<Phase> works, int num_terminals, TraceReader traceReader) {
+    public WorkloadState(BenchmarkState benchmarkState, List<Phase> works, int num_terminals, int schedPolicy, int predResultsHistory, TraceReader traceReader) {
         this.benchmarkState = benchmarkState;
         this.works = works;
         this.num_terminals = num_terminals;
         this.workerNeedSleep = num_terminals;
+        this.schedPolicy = schedPolicy;
+        this.RESULTS_QUEUE_LIMIT = predResultsHistory;
         this.traceReader = traceReader;
         
         phaseIterator = works.iterator();
+        createWorkQueue();
+        try {
+            loadTableStatsFile();
+        } catch (IOException e) {
+            LOG.info("Unable to load table stats file");
+        }
     }
 
-    //Comparator anonymous class implementation
-    public static Comparator<SubmittedProcedure> comp = new Comparator<SubmittedProcedure>(){
-        
+    // EDF Comparator anonymous class implementation
+    public static Comparator<SubmittedProcedure> edfComp = new Comparator<SubmittedProcedure>(){
         @Override
         public int compare(SubmittedProcedure p1, SubmittedProcedure p2) {
-	    if (p1.getCost() == 0.0 && p2.getCost() == 0.0) {
-		return (int) (p1.getStartTime() - p2.getStartTime());
-	    } else if (0.6 * p2.getDeadlineTime() <= p1.getDeadlineTime() &&
-		       p1.getDeadlineTime() <= 1.4 * p2.getDeadlineTime()) {
-		// Equal deadline group. So same group in gEDF. SJF within group
-		return (int) (p1.getExecTime() - p2.getExecTime());
-	    } else {
-		return (int) (p1.getDeadlineTime() - p2.getDeadlineTime());
-	    }
+			if (p1.getCost() == 0.0 && p2.getCost() == 0.0) {
+				return (int) (p1.getStartTime() - p2.getStartTime());
+			} else {
+				return (int) (p1.getDeadlineTime() - p2.getDeadlineTime());
+			}
         }
     };
 
-    private PriorityQueue<SubmittedProcedure> workQueue = new PriorityQueue<SubmittedProcedure>(100, comp);
+    // GEDF Comparator anonymous class implementation
+    public static Comparator<SubmittedProcedure> gedfComp = new Comparator<SubmittedProcedure>(){
+        @Override
+        public int compare(SubmittedProcedure p1, SubmittedProcedure p2) {
+            if (p1.getCost() == 0.0 && p2.getCost() == 0.0) {
+                return (int) (p1.getStartTime() - p2.getStartTime());
+            } else if (0.6 * p2.getDeadlineTime() <= p1.getDeadlineTime() &&
+                    p1.getDeadlineTime() <= 1.4 * p2.getDeadlineTime()) {
+                // Equal deadline group. So same group in gEDF. SJF within group
+                return (int) (p1.getExecTime() - p2.getExecTime());
+            } else {
+                return (int) (p1.getDeadlineTime() - p2.getDeadlineTime());
+            }
+        }
+    };
+
+    private void createWorkQueue() {
+        switch (SchedPolicy.valueOf(this.schedPolicy)) {
+            case FIFO:
+                workQueue = new LinkedList<SubmittedProcedure>();
+                break;
+            case EDF:
+            case EDF_PRED_LOC:
+            case EDF_PRED_LOC_OLD:
+                workQueue = new PriorityQueue<SubmittedProcedure>(100, edfComp);
+                break;
+            case GEDF:
+            case GEDF_PRED_LOC:
+            case GEDF_PRED_LOC_OLD:
+                workQueue = new PriorityQueue<SubmittedProcedure>(100, gedfComp);
+                break;
+
+        }
+    }
+
+    private void loadTableStatsFile() throws IOException {
+        String statsFilePath = System.getProperty("user.home") + File.separator + "table_stats.txt";
+        BufferedReader tableStats;
+        try {
+            tableStats = new BufferedReader(new FileReader(statsFilePath));
+        } catch (FileNotFoundException e) {
+            LOG.info("Could not load table stats file: " + statsFilePath);
+            return;
+        }
+
+        String nextLine = tableStats.readLine();
+        String[] array = nextLine.split(",", 0);
+        this.tweetRelPages = Integer.parseInt(array[0]);
+        this.tweetRelTuples = Integer.parseInt(array[1]);
+        this.tweetRelNDistinct = Integer.parseInt(tableStats.readLine());
+
+        nextLine = tableStats.readLine();
+        String[] mc_vals = nextLine.split(",", 0);
+        nextLine = tableStats.readLine();
+        String[] mc_freqs = nextLine.split(",", 0);
+
+        for (int i=0; i<mc_vals.length; i++) {
+            this.tweetRelSumFreq += Float.parseFloat(mc_freqs[i]);
+            this.tweetRelFreqMap.put(Integer.parseInt(mc_vals[i]),
+                                     Float.parseFloat(mc_freqs[i]));
+        }
+    }
     
     /**
     * Add a request to do work.
@@ -96,88 +178,94 @@ public class WorkloadState {
        synchronized (this) {
             if (resetQueues) {
                 workQueue.clear();
-	    }
+            }
     
             assert amount > 0;
     
             // Only use the work queue if the phase is enabled and rate limited.
             if (traceReader != null && currentPhase != null) {
                 if (benchmarkState.getState() != State.WARMUP) {
-		    LinkedList<SubmittedProcedure> list = 
-			    traceReader.getProcedures(System.nanoTime());
-		    ListIterator it = list.listIterator(0);
-		    while (it.hasNext()) {
+                    LinkedList<SubmittedProcedure> list = 
+                        traceReader.getProcedures(System.nanoTime());
+                    ListIterator it = list.listIterator(0);
+                    while (it.hasNext()) {
                         workQueue.add((SubmittedProcedure)it.next());
-		    }
+                    }
                }
-                   }
-            else if (currentPhase == null || currentPhase.isDisabled()
-                || !currentPhase.isRateLimited() || currentPhase.isSerial())
-            {
+           } else if (currentPhase == null || currentPhase.isDisabled()
+                || !currentPhase.isRateLimited() || currentPhase.isSerial()) {
                 return;
-                   }
-            else {
+           } else {
                 if (benchmarkState.getState() != State.WARMUP) {
                     // Add the specified number of procedures to the end of the queue.
                     for (int i = 0; i < amount; ++i) {
-		        
-		        // Pick transaction to be run from file. It will fallback
-		        // to the regular generation method if input file is empty
-		        Object[] proc = currentPhase.chooseTransactionFromFile();
+                        // Pick transaction to be run from file. It will fallback
+                        // to the regular generation method if input file is empty
+                        Object[] proc = currentPhase.chooseTransactionFromFile();
 
-		        int type = (int) proc[0];
-		        long startTime = System.nanoTime();
-		        int num = (int) proc[1];
-		        float cost = (float) proc[2];
-		        ArrayList<Long> pred = (ArrayList<Long>) proc[3];
+                        int type = (int) proc[0];
+                        long startTime = System.nanoTime();
+                        int num = (int) proc[1];
+                        float cost = (float) proc[2];
+                        ArrayList<Long> pred = (ArrayList<Long>) proc[3];
 
-		        if (pred != null) {
-		    	// Check if we ran some query in the past with similar predicates
-		    	Iterator it = pred.iterator();
-		    	float reduction = (float) 0.0;
-		    	HashMap<Long, Boolean> map;
+                        if (pred != null) {
+                            // Check if we ran some query in the past with similar predicates
+                            Iterator it = pred.iterator();
+                            float reduction = (float) 0.0;
+                            HashMap<Long, Boolean> map;
 
-		    	// Iterate over all the predicate values
-		    	while (it.hasNext()) {
-		    	    Long predUid = (Long) it.next();
-		    	    Iterator resIt = resultsQueue.iterator();
+                            boolean oldPLA = ((SchedPolicy.valueOf(this.schedPolicy) ==
+                                               SchedPolicy.EDF_PRED_LOC_OLD) ||
+                                              (SchedPolicy.valueOf(this.schedPolicy) ==
+                                               SchedPolicy.GEDF_PRED_LOC_OLD));
 
-		    	    // Iterate over all past query result predicates
-		    	    while (resIt.hasNext()) {
-		    		map = (HashMap<Long, Boolean>) resIt.next();
-		    		if (map.containsKey(predUid)) {
-		    		    // Reduction is roughly 599.95 per
-		    		    // predicate. We reduce by close to 50%
-		    		    reduction += 270.0;
-		    		    break;
-		    		}
-		    	    }
-		    	}
-		    	cost -= reduction;
-		        }
+                            // Iterate over all the predicate values
+                            while (it.hasNext()) {
+                                Long predUid = (Long) it.next();
 
-		        // Convert cost into some form of deadline, so we can simulate EDF
-		        long execTime = (long) (cost * 75000);
-		        long deadlineTime = startTime + 10 * execTime;
+                                if (resultsUnion.containsKey(predUid)) {
+                                    if (oldPLA) {
+                                        // Reduction is roughly 599.95 per
+                                        // predicate. We reduce by close to 50%
+                                        reduction += 270.0;
+                                    } else {
+                                        float freq = 0;
+                                        if (tweetRelFreqMap.containsKey(predUid)) {
+                                            freq = tweetRelFreqMap.get(predUid);
+                                        } else {
+                                            freq = (1 - tweetRelSumFreq) /
+                                                (tweetRelNDistinct - tweetRelFreqMap.size());
+                                        }
+                                        reduction += (freq * tweetRelTuples * RANDOM_PAGE_COST);
+                                    }
+                                }
+                            }
+                            cost -= reduction;
+                        }
+
+                        // Convert cost into some form of deadline, so we can simulate EDF
+                        long execTime = (long) (cost * 75000);
+                        long deadlineTime = startTime + 10 * execTime;
 
                         workQueue.add(new SubmittedProcedure(type, startTime,
-		    			    num, cost, execTime, deadlineTime));
-		    }
-		}
+                                num, cost, execTime, deadlineTime));
+                    }
+                }
             }
 
             // Can't keep up with current rate? Remove the oldest transactions
             // (from the front of the queue).
             while(workQueue.size() > RATE_QUEUE_LIMIT) {
                 workQueue.poll();
-	    }
+            }
 
             // Wake up sleeping workers to deal with the new work.
             int numToWake = (amount <= workersWaiting? amount : workersWaiting);
             for (int i = 0; i < numToWake; ++i)
                 this.notify();
-           }
        }
+   }
 
     public boolean getScriptPhaseComplete() {
         assert (traceReader != null);
@@ -221,8 +309,7 @@ public class WorkloadState {
 
         // Unlimited-rate phases don't use the work queue.
         if (currentPhase != null && traceReader == null
-            && !currentPhase.isRateLimited())
-        {
+            && !currentPhase.isRateLimited()) {
             synchronized(this) {
                 ++workersWorking;
             }
@@ -255,36 +342,55 @@ public class WorkloadState {
             if (traceReader != null && this.benchmarkState.getState() == State.WARMUP)
                 return workQueue.peek();
 
-	    // Remove transactions which will not complete within the deadlines
-	    long currentTime = System.nanoTime();
-            while(workQueue.size() > 1) {
-		SubmittedProcedure proc = workQueue.peek();
-		if (currentTime + proc.getExecTime() > proc.getDeadlineTime()) {
-		    // Can not complete this transaction. Just drop it
-		    workQueue.poll();
-		    droppedTransactions++;
-		} else {
-		    break;
-		}
-	    }
-
+            // Remove transactions which will not complete within the deadlines
+            // NOTE - FIFO does not consider deadlines
+            if (SchedPolicy.valueOf(this.schedPolicy) != SchedPolicy.FIFO) {
+                long currentTime = System.nanoTime();
+                while(workQueue.size() > 1) {
+                    SubmittedProcedure proc = workQueue.peek();
+                    if (currentTime + proc.getExecTime() > proc.getDeadlineTime()) {
+                        // Can not complete this transaction. Just drop it
+                        workQueue.poll();
+                        droppedTransactions++;
+                    } else {
+                        break;
+                    }
+                }
+            }
             return workQueue.poll();
         }
     }
 
     public void updateTweetResults(ArrayList<Object> results) {
-	Iterator it = results.iterator();
-	HashMap<Long, Boolean> map = new HashMap<Long, Boolean>();
-        while (it.hasNext()) {
-	    Long nextElem = (Long) it.next();
-	    map.put(nextElem, true);
-	}
+        Iterator it = results.iterator();
+        LinkedList<Long> predicates = new LinkedList<Long>();
+
         synchronized (this) {
-	    resultsQueue.add(map);
-	    while (resultsQueue.size() > RESULTS_QUEUE_LIMIT) {
-                resultsQueue.remove();
-	    }
-            
+            while (it.hasNext()) {
+                Long nextElem = (Long) it.next();
+                predicates.add(nextElem);
+                Integer prevValue = resultsUnion.get(nextElem);
+                resultsUnion.put(nextElem, prevValue == null ? 1 : prevValue + 1);
+            }
+            resultsQueue.add(predicates);
+
+            // Need to remove older result predicates
+            while (resultsQueue.size() > RESULTS_QUEUE_LIMIT) {
+                predicates = resultsQueue.remove();
+                it = predicates.iterator();
+
+                // Also update results union by decrementing or removing
+                // predicate counters
+                while (it.hasNext()) {
+                    Long nextElem = (Long) it.next();
+                    Integer prevValue = resultsUnion.get(nextElem);
+                    if (prevValue == 1) {
+                        resultsUnion.remove(nextElem);
+                    } else {
+                        resultsUnion.put(nextElem, prevValue - 1);
+                    }
+                }
+            }
         }
     }
 

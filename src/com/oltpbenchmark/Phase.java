@@ -26,12 +26,15 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 
+import com.oltpbenchmark.types.SchedPolicy;
 import com.oltpbenchmark.util.StringUtil;
+import org.apache.log4j.Logger;
 
 public class Phase {
     public enum Arrival {
         REGULAR,POISSON,
     }
+    private static final Logger LOG = Logger.getLogger(ThreadBench.class);
 
     private final Random gen = new Random();
     public final String benchmarkName;
@@ -42,6 +45,7 @@ public class Phase {
 
 
     private final boolean rateLimited;
+    private final int schedPolicy;
     private final boolean disabled;
     private final boolean serial;
     private final boolean timed;
@@ -53,7 +57,7 @@ public class Phase {
     private BufferedReader input;
     
 
-    Phase(String benchmarkName, int id, int t, int r, List<String> o, boolean rateLimited, boolean disabled, boolean serial, boolean timed, int activeTerminals, Arrival a) {
+    Phase(String benchmarkName, int id, int t, int r, List<String> o, boolean rateLimited, int schedPolicy, boolean disabled, boolean serial, boolean timed, int activeTerminals, Arrival a) {
         ArrayList<Double> w = new ArrayList<Double>();
         for (String s : o)
             w.add(Double.parseDouble(s));
@@ -65,18 +69,44 @@ public class Phase {
         this.weights = Collections.unmodifiableList(w);
         this.num_weights = this.weights.size();
         this.rateLimited = rateLimited;
+        this.schedPolicy = schedPolicy;
         this.disabled = disabled;
         this.serial = serial;
         this.timed = timed;
         this.nextSerial = 1;
         this.activeTerminals = activeTerminals;
         this.arrival=a;
-	try {
-	    this.input = new BufferedReader(new FileReader("/home/karan/input_jobs_loc_cost.txt"));
-	} catch (FileNotFoundException e) {
-	}
+
+        loadInputFile();
+
     }
     
+    private void loadInputFile() {
+        // Try loading the appropriate input file 
+        String inputFilePath = null;
+        switch (SchedPolicy.valueOf(this.schedPolicy)) {
+            case FIFO:
+                inputFilePath = System.getProperty("user.home") + File.separator + "input_jobs.txt";
+                break;
+            case EDF:
+            case GEDF:
+                inputFilePath = System.getProperty("user.home") + File.separator + "input_jobs_cost.txt";
+                break;
+            case EDF_PRED_LOC_OLD:
+            case GEDF_PRED_LOC_OLD:
+            case EDF_PRED_LOC:
+            case GEDF_PRED_LOC:
+                inputFilePath = System.getProperty("user.home") + File.separator + "input_jobs_loc_cost.txt";
+                break;
+
+        }
+        try {
+            this.input = new BufferedReader(new FileReader(inputFilePath));
+        } catch (FileNotFoundException e) {
+            LOG.info("Could not load input file: " + inputFilePath);
+        }
+    }
+
     public boolean isRateLimited() {
         return rateLimited;
     }
@@ -139,29 +169,35 @@ public class Phase {
     }
     public Object[] chooseTransactionFromFile() {
         if (input != null) {
-	    String nextLine = null;
-	    try {
-	        nextLine = input.readLine();
-	    } catch (IOException e) {
-	    }
-	    if (nextLine != null) {
-	        String[] array = nextLine.split(",",0);
-	        int transType = Integer.parseInt(array[0]);
-	        int num = Integer.parseInt(array[1]);
-	        float cost = Float.parseFloat(array[2]);
-	        ArrayList<Long> pred = null;
-	        if (array.length > 3) {
-	            pred = new ArrayList<Long>(array.length-3);
-	            for (int i=3; i<array.length; i++) {
+            String nextLine = null;
+            try {
+                nextLine = input.readLine();
+            } catch (IOException e) {
+            }
+            if (nextLine != null) {
+                String[] array = nextLine.split(",", 0);
+                int transType = Integer.parseInt(array[0]);
+                int num = Integer.parseInt(array[1]);
+                float cost = (float) 0.0;
+                ArrayList<Long> pred = null;
+                if (array.length == 3) {
+                    // EDF, GEDF
+                    cost = Float.parseFloat(array[2]);
+                } else if (array.length > 3) {
+                    // Locality-aware EDF, GEDF
+                    cost = Float.parseFloat(array[2]);
+                    pred = new ArrayList<Long>(array.length-3);
+                    for (int i=3; i<array.length; i++) {
                         pred.add(Long.parseLong(array[i]));
-	            }
-	        }
-	        return new Object[] {transType, num, cost, pred};
-	    }
-	}
-	int transType = this.chooseTransaction();
-	return new Object[] {transType, -1, (float)0.0, null};
+                    }
+                }
+                return new Object[] {transType, num, cost, pred};
+            }
+        }
+        int transType = this.chooseTransaction();
+        return new Object[] {transType, -1, (float)0.0, null};
     }
+
     public int chooseTransaction(boolean isColdQuery) {
         if (isDisabled())
             return -1;

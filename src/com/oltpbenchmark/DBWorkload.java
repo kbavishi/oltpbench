@@ -45,6 +45,7 @@ import com.oltpbenchmark.api.TransactionType;
 import com.oltpbenchmark.api.TransactionTypes;
 import com.oltpbenchmark.api.Worker;
 import com.oltpbenchmark.types.DatabaseType;
+import com.oltpbenchmark.types.SchedPolicy;
 import com.oltpbenchmark.util.ClassUtil;
 import com.oltpbenchmark.util.FileUtil;
 import com.oltpbenchmark.util.QueueLimitException;
@@ -208,6 +209,12 @@ public class DBWorkload {
             wrkld.setDBName(xmlConfig.getString("DBName"));
             wrkld.setDBUsername(xmlConfig.getString("username"));
             wrkld.setDBPassword(xmlConfig.getString("password"));
+
+            SchedPolicy pol = SchedPolicy.convertFromString(xmlConfig.getString("policy").toUpperCase());
+            assert(pol != null);
+            wrkld.setSchedPolicy(pol.getPolicyAsInt());
+
+            wrkld.setPredResultsHistory(xmlConfig.getInt("pred_history", 5));
             
             int terminals = xmlConfig.getInt("terminals[not(@bench)]", 0);
             terminals = xmlConfig.getInt("terminals" + pluginTest, terminals);
@@ -252,6 +259,8 @@ public class DBWorkload {
             initDebug.put("URL", wrkld.getDBConnection());
             initDebug.put("Isolation", wrkld.getIsolationString());
             initDebug.put("Scale Factor", wrkld.getScaleFactor());
+            initDebug.put("Sched Policy", wrkld.getSchedPolicy());
+            initDebug.put("Pred History Size", wrkld.getPredResultsHistory());
             
             if(selectivity != -1)
                 initDebug.put("Selectivity", selectivity);
@@ -460,8 +469,8 @@ public class DBWorkload {
                               weight_strings,
                               rateLimited,
                               disabled,
-                        serial,
-                        timed,
+                              serial,
+                              timed,
                               activeTerminals,
                               arrival);
             } // FOR

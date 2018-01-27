@@ -48,6 +48,8 @@ public class WorkloadConfiguration {
 	private String db_username;
 	private String db_password;
 	private String db_driver;	
+    private int schedPolicy;
+    private int predResultsHistory = 5;
 	private double scaleFactor = 1.0;
 	private double selectivity = -1.0;
 	private int terminals;
@@ -75,7 +77,9 @@ public class WorkloadConfiguration {
 	 */
     public WorkloadState initializeState(BenchmarkState benchmarkState) {
         assert (workloadState == null);
-        workloadState = new WorkloadState(benchmarkState, works, terminals, traceReader);
+        workloadState = new WorkloadState(benchmarkState, works, terminals,
+                                          this.schedPolicy, this.predResultsHistory,
+                                          traceReader);
         return workloadState;
     }
 
@@ -88,7 +92,7 @@ public class WorkloadConfiguration {
  
 
     public void addWork(int time, int rate, List<String> weights, boolean rateLimited, boolean disabled, boolean serial, boolean timed, int active_terminals, Phase.Arrival arrival) {
-        works.add(new Phase(benchmarkName, numberOfPhases, time, rate, weights, rateLimited, disabled, serial, timed, active_terminals, arrival));
+        works.add(new Phase(benchmarkName, numberOfPhases, time, rate, weights, rateLimited, this.schedPolicy, disabled, serial, timed, active_terminals, arrival));
 		numberOfPhases++;
 	}
 	
@@ -171,6 +175,22 @@ public class WorkloadConfiguration {
 	public void setRecordAbortMessages(boolean recordAbortMessages) {
         this.recordAbortMessages = recordAbortMessages;
     }
+
+	public void setSchedPolicy(int schedPolicy) {
+		this.schedPolicy = schedPolicy;
+	}
+	
+	public int getSchedPolicy() {
+		return this.schedPolicy;
+	}
+
+	public void setPredResultsHistory(int history) {
+		this.predResultsHistory = history;
+	}
+	
+	public int getPredResultsHistory() {
+		return this.predResultsHistory;
+	}
 	
 	/**
 	 * Whether each worker should record the transaction's UserAbort messages
