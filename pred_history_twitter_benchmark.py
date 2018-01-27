@@ -80,7 +80,7 @@ if __name__ == '__main__':
 
     # Update host information
     global POSTGRES_HOST, POSTGRES_IP
-    POSTGRES_IP = "%s.wisc.cloudlab.us" % sys.argv[1]
+    POSTGRES_IP = sys.argv[1]
     POSTGRES_HOST = "vagrant@%s" % POSTGRES_IP
 
     main()
