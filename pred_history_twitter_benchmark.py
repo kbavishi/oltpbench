@@ -29,10 +29,11 @@ def trim_first_line(csv_file):
     run_bash_cmd("tail -n +2 %s > /tmp/x.csv" % csv_file)
     run_bash_cmd("mv /tmp/x.csv %s" % csv_file)
 
-def generate_twitter_config(sched_policy, pred_history):
+def generate_twitter_config(sched_policy, pred_history, arrival_rate=75):
     os.environ["POSTGRES_IP"] = POSTGRES_IP
     os.environ["SCHED_POLICY"] = sched_policy
     os.environ["PRED_HISTORY"] = str(pred_history)
+    os.environ["RATE"] = str(arrival_rate)
 
     run_bash_cmd("j2 config/twitter_config.xml.j2 | "
                  "tee config/twitter_config.xml")
