@@ -215,6 +215,7 @@ public class DBWorkload {
             wrkld.setSchedPolicy(pol.getPolicyAsInt());
 
             wrkld.setPredResultsHistory(xmlConfig.getInt("pred_history", 5));
+            wrkld.setAlpha(xmlConfig.getDouble("ewma_alpha", 0.5));
             
             int terminals = xmlConfig.getInt("terminals[not(@bench)]", 0);
             terminals = xmlConfig.getInt("terminals" + pluginTest, terminals);
@@ -261,6 +262,7 @@ public class DBWorkload {
             initDebug.put("Scale Factor", wrkld.getScaleFactor());
             initDebug.put("Sched Policy", wrkld.getSchedPolicy());
             initDebug.put("Pred History Size", wrkld.getPredResultsHistory());
+            initDebug.put("EWMA Alpha", wrkld.getAlpha());
             
             if(selectivity != -1)
                 initDebug.put("Selectivity", selectivity);

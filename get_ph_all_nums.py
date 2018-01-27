@@ -21,8 +21,9 @@ def get_exec_nums(filename):
     nums = []
     for line in lines:
         tokens = line.split(",")
-        qtype, exec_time, cost = tokens[0], tokens[4], tokens[5]
-        nums += ["%s,%s,%s" % (qtype, exec_time, cost)]
+        qtype, exec_time, cost, exp_exec_time = \
+            tokens[0], tokens[4], tokens[5], tokens[6]
+        nums += ["%s,%s,%s,%s" % (qtype, exec_time, cost, exec_time)]
 
     return nums
         
@@ -33,23 +34,24 @@ def get_all_exec_nums(csv_file, iterations=11):
         all_nums.extend(get_exec_nums(filename))
 
     exec_times_by_type = {}
-    costs_by_type = {}
+    exp_exec_times_by_type = {}
 
     for line in all_nums:
         tokens = line.split(",")
-        qtype, exec_time, cost = int(tokens[0]), int(tokens[1]), float(tokens[2])
+        qtype, exec_time, exp_exec_time = \
+            int(tokens[0]), int(tokens[1]), int(tokens[3])
         if qtype in exec_times_by_type:
             exec_times_by_type[qtype] += [exec_time]
-            costs_by_type[qtype] += [cost]
+            exp_exec_times_by_type[qtype] += [exp_exec_time]
         else:
             exec_times_by_type[qtype] = [exec_time]
-            costs_by_type[qtype] = [cost]
+            exp_exec_times_by_type[qtype] = [exp_exec_time]
 
     print "-" * 10
     print csv_file
     print "-" * 10
     for qtype in sorted(exec_times_by_type.keys()):
-        pnr = pearsonr(costs_by_type[qtype], exec_times_by_type[qtype])
+        pnr = pearsonr(exp_exec_times_by_type[qtype], exec_times_by_type[qtype])
         print "Type %s: %.3f, %.3f" % (qtype, pnr[0], pnr[1])
         
     return all_nums

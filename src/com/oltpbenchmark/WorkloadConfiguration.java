@@ -49,6 +49,7 @@ public class WorkloadConfiguration {
 	private String db_password;
 	private String db_driver;	
     private int schedPolicy;
+    private double alpha = 0.5;
     private int predResultsHistory = 5;
 	private double scaleFactor = 1.0;
 	private double selectivity = -1.0;
@@ -78,8 +79,8 @@ public class WorkloadConfiguration {
     public WorkloadState initializeState(BenchmarkState benchmarkState) {
         assert (workloadState == null);
         workloadState = new WorkloadState(benchmarkState, works, terminals,
-                                          this.schedPolicy, this.predResultsHistory,
-                                          traceReader);
+                                          this.schedPolicy, this.alpha,
+                                          this.predResultsHistory, traceReader);
         return workloadState;
     }
 
@@ -190,6 +191,14 @@ public class WorkloadConfiguration {
 	
 	public int getPredResultsHistory() {
 		return this.predResultsHistory;
+	}
+
+	public void setAlpha(double alpha) {
+		this.alpha = alpha;
+	}
+	
+	public double getAlpha() {
+		return this.alpha;
 	}
 	
 	/**

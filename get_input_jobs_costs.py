@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 
+import os
 import psycopg2
 import subprocess
 import shlex
@@ -102,7 +103,7 @@ def run_transaction(cur, trans_type, num):
         assert False, "Unknown transaction type: %s" % trans_type
 
 def read_input_file(cur, limit=2000000, print_pred=False):
-    f = open("/home/karan/input_jobs.txt", "r")
+    f = open(os.path.join(os.getenv("HOME"), "input_jobs.txt"), "r")
 
     count = 0
     line = f.readline()
@@ -131,7 +132,7 @@ def create_table_stats_file(cur):
     most_common_vals = most_common_vals.strip("{").strip("}")
     most_common_freqs = ",".join(map(str, most_common_freqs))
 
-    with open("/home/karan/table_stats.txt", "w") as f:
+    with open(os.path.join(os.getenv("HOME"), "table_stats.txt"), "w") as f:
         f.write("%s,%s\n" % (int(relpages), int(reltuples)))
         f.write("%s\n" % int(n_distinct))
         f.write("%s\n" % most_common_vals)

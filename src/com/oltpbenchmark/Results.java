@@ -170,6 +170,7 @@ public final class Results {
             "Latency (microseconds)",
             "Exec Latency (microseconds)",
             "Plan cost",
+            "Exp. Exec Latency (microseconds)",
             "Worker Id (start number)",
             "Phase Id (index in config file)"
         };
@@ -184,7 +185,8 @@ public final class Results {
                 String.format("%10.6f", startUs - offset),
                 Integer.toString(s.latencyUs),
                 Integer.toString(s.execLatencyUs),
-		String.format("%.2f", s.cost),
+                String.format("%.2f", s.cost),
+                Integer.toString(s.expExecLatencyUs),
                 Integer.toString(s.workerId),
                 Integer.toString(s.phaseId),
             };

@@ -70,6 +70,8 @@ public class WorkloadState {
     private int schedPolicy;
     private int RESULTS_QUEUE_LIMIT;
     private Queue<SubmittedProcedure> workQueue;
+    private HashMap<Integer, Double> costSlope = new HashMap<Integer, Double>();
+    private double alpha = 0.5;
 
     private int tweetRelPages;
     private int tweetRelTuples;
@@ -77,12 +79,14 @@ public class WorkloadState {
     private float tweetRelSumFreq = (float) 0.0;
     private HashMap<Integer, Float> tweetRelFreqMap = new HashMap<Integer, Float>();
     
-    public WorkloadState(BenchmarkState benchmarkState, List<Phase> works, int num_terminals, int schedPolicy, int predResultsHistory, TraceReader traceReader) {
+    public WorkloadState(BenchmarkState benchmarkState, List<Phase> works, int num_terminals,
+            int schedPolicy, double alpha, int predResultsHistory, TraceReader traceReader) {
         this.benchmarkState = benchmarkState;
         this.works = works;
         this.num_terminals = num_terminals;
         this.workerNeedSleep = num_terminals;
         this.schedPolicy = schedPolicy;
+        this.alpha = alpha;
         this.RESULTS_QUEUE_LIMIT = predResultsHistory;
         this.traceReader = traceReader;
         
@@ -246,7 +250,7 @@ public class WorkloadState {
                         }
 
                         // Convert cost into some form of deadline, so we can simulate EDF
-                        long execTime = (long) (cost * 75000);
+                        long execTime = (long) (cost * costSlope.getOrDefault(type, 120000.0));
                         long deadlineTime = startTime + 10 * execTime;
 
                         workQueue.add(new SubmittedProcedure(type, startTime,
@@ -283,6 +287,14 @@ public class WorkloadState {
                    this.notifyAll();
                }
            }
+       }
+   }
+
+   public void updateCostEWMA(int type, long execNs, float cost) {
+       double currentCostSlope = execNs * 1.0 / cost;
+       synchronized(this) {
+           costSlope.put(type, this.alpha * currentCostSlope +
+                   (1-this.alpha) * costSlope.getOrDefault(type, 0.0));
        }
    }
    
