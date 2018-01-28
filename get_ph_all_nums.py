@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 
+import sys
 from scipy.stats.stats import pearsonr
 
 def get_latency_nums(filename):
@@ -9,10 +10,10 @@ def get_latency_nums(filename):
         nums += [line.split(",")[3]]
     return nums
         
-def get_all_latency_nums(csv_file, iterations=11):
+def get_all_latency_nums(csv_file, iterations=11, directory="."):
     all_nums = []
     for i in xrange(iterations):
-        filename = "results/%s.%d.csv" % (csv_file, i)
+        filename = "%s/results/%s.%d.csv" % (directory, csv_file, i)
         all_nums.extend(get_latency_nums(filename))
     return all_nums
 
@@ -27,10 +28,10 @@ def get_exec_nums(filename):
 
     return nums
         
-def get_all_exec_nums(csv_file, iterations=11):
+def get_all_exec_nums(csv_file, iterations=11, directory="."):
     all_nums = []
     for i in xrange(iterations):
-        filename = "results/%s.%d.csv" % (csv_file, i)
+        filename = "%s/results/%s.%d.csv" % (directory, csv_file, i)
         all_nums.extend(get_exec_nums(filename))
 
     exec_times_by_type = {}
@@ -50,38 +51,50 @@ def get_all_exec_nums(csv_file, iterations=11):
     print "-" * 10
     print csv_file
     print "-" * 10
+
+    mae_sum = 0.0
     for qtype in sorted(exec_times_by_type.keys()):
+        for i in xrange(len(exec_times_by_type[qtype])):
+            err = abs(exp_exec_times_by_type[qtype][i] -
+                      exec_times_by_type[qtype][i])
+            rel_err = err / exec_times_by_type[qtype][i]
+            mae_sum += rel_err
+
+        mae = mae_sum / len(exec_times_by_type[qtype])
         pnr = pearsonr(exp_exec_times_by_type[qtype], exec_times_by_type[qtype])
-        print "Type %s: %.3f, %.3f" % (qtype, pnr[0], pnr[1])
+        print "Type %s: %.3f, %.3f, %.3f" % (qtype, pnr[0], pnr[1], mae)
         
     return all_nums
 
-def main():
-    fifo_nums = get_all_latency_nums("fifo")
-    edf_nums = get_all_latency_nums("edf")
-    edf_loc_nums = get_all_latency_nums("edf_loc_old")
+def main(directory="."):
+    fifo_nums = get_all_latency_nums("fifo", directory=directory)
+    edf_nums = get_all_latency_nums("edf", directory=directory)
+    edf_loc_nums = get_all_latency_nums("edf_loc_old", directory=directory)
 
     open("fifo_nums.csv", "w").write("\n".join(fifo_nums))
     open("edf_nums.csv", "w").write("\n".join(edf_nums))
     open("edf_loc_old_nums.csv", "w").write("\n".join(edf_loc_nums))
 
     for hist_size in (10, 100, 500, 1000, 5000):
-        edf_loc_nums = get_all_latency_nums("edf_loc_%d" % hist_size)
+        edf_loc_nums = get_all_latency_nums("edf_loc_%d" % hist_size,
+                                            directory=directory)
         open("edf_loc_%d_nums.csv" % hist_size, "w").write("\n".join(edf_loc_nums))
 
-    fifo_nums = get_all_exec_nums("fifo")
-    edf_nums = get_all_exec_nums("edf")
-    edf_loc_nums = get_all_exec_nums("edf_loc_old")
+    fifo_nums = get_all_exec_nums("fifo", directory=directory)
+    edf_nums = get_all_exec_nums("edf", directory=directory)
+    edf_loc_nums = get_all_exec_nums("edf_loc_old", directory=directory)
 
     open("fifo_exec.csv", "w").write("\n".join(fifo_nums))
     open("edf_exec.csv", "w").write("\n".join(edf_nums))
     open("edf_loc_old_exec.csv", "w").write("\n".join(edf_loc_nums))
 
     for hist_size in (10, 100, 500, 1000, 5000):
-        edf_loc_nums = get_all_exec_nums("edf_loc_%d" % hist_size)
+        edf_loc_nums = get_all_exec_nums("edf_loc_%d" % hist_size,
+                                         directory=directory)
         open("edf_loc_%d_exec.csv" % hist_size, "w").write("\n".join(edf_loc_nums))
 
 if __name__ == '__main__':
-    main()
-
-
+    if len(sys.argv) == 2:
+        main(sys.argv[1])
+    else:
+        main()
