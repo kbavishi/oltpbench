@@ -143,6 +143,6 @@ if __name__ == '__main__':
 
     # Rename output and results directory for backups
     os.rename("output",
-              "new_pred_data/ph_alpha_%s_gedf_%s/output" % (alpha, gedf_factor))
+              "new_pred_data/ph_%s_alpha_%s_gedf_%s/output" % (args.rate, alpha, gedf_factor))
     os.rename("results",
-              "new_pred_data/ph_alpha_%s_gedf_%s/results" % (alpha, gedf_factor))
+              "new_pred_data/ph_%s_alpha_%s_gedf_%s/results" % (args.rate, alpha, gedf_factor))
