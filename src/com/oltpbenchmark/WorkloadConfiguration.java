@@ -50,6 +50,7 @@ public class WorkloadConfiguration {
 	private String db_driver;	
     private int schedPolicy;
     private double alpha = 0.5;
+    private double gedfFactor = 0.4;
     private int predResultsHistory = 5;
 	private double scaleFactor = 1.0;
 	private double selectivity = -1.0;
@@ -80,6 +81,7 @@ public class WorkloadConfiguration {
         assert (workloadState == null);
         workloadState = new WorkloadState(benchmarkState, works, terminals,
                                           this.schedPolicy, this.alpha,
+                                          this.gedfFactor,
                                           this.predResultsHistory, traceReader);
         return workloadState;
     }
@@ -199,6 +201,14 @@ public class WorkloadConfiguration {
 	
 	public double getAlpha() {
 		return this.alpha;
+	}
+
+	public void setGedfFactor(double gedfFactor) {
+		this.gedfFactor = gedfFactor;
+	}
+	
+	public double getGedfFactor() {
+		return this.gedfFactor;
 	}
 	
 	/**

@@ -72,6 +72,7 @@ public class WorkloadState {
     private Queue<SubmittedProcedure> workQueue;
     private HashMap<Integer, Double> costSlope = new HashMap<Integer, Double>();
     private double alpha = 0.5;
+    private static double gedfFactor = 0.4;
 
     private int tweetRelPages;
     private int tweetRelTuples;
@@ -80,13 +81,15 @@ public class WorkloadState {
     private HashMap<Integer, Float> tweetRelFreqMap = new HashMap<Integer, Float>();
     
     public WorkloadState(BenchmarkState benchmarkState, List<Phase> works, int num_terminals,
-            int schedPolicy, double alpha, int predResultsHistory, TraceReader traceReader) {
+            int schedPolicy, double alpha, double gedfFactor, int predResultsHistory,
+            TraceReader traceReader) {
         this.benchmarkState = benchmarkState;
         this.works = works;
         this.num_terminals = num_terminals;
         this.workerNeedSleep = num_terminals;
         this.schedPolicy = schedPolicy;
         this.alpha = alpha;
+        this.gedfFactor = gedfFactor;
         this.RESULTS_QUEUE_LIMIT = predResultsHistory;
         this.traceReader = traceReader;
         
@@ -104,9 +107,9 @@ public class WorkloadState {
         @Override
         public int compare(SubmittedProcedure p1, SubmittedProcedure p2) {
 			if (p1.getCost() == 0.0 && p2.getCost() == 0.0) {
-				return (int) (p1.getStartTime() - p2.getStartTime());
+				return Double.compare(p1.getStartTime(), p2.getStartTime());
 			} else {
-				return (int) (p1.getDeadlineTime() - p2.getDeadlineTime());
+				return Double.compare(p1.getDeadlineTime(), p2.getDeadlineTime());
 			}
         }
     };
@@ -116,13 +119,17 @@ public class WorkloadState {
         @Override
         public int compare(SubmittedProcedure p1, SubmittedProcedure p2) {
             if (p1.getCost() == 0.0 && p2.getCost() == 0.0) {
-                return (int) (p1.getStartTime() - p2.getStartTime());
-            } else if (0.6 * p2.getDeadlineTime() <= p1.getDeadlineTime() &&
-                    p1.getDeadlineTime() <= 1.4 * p2.getDeadlineTime()) {
+                return Double.compare(p1.getStartTime(), p2.getStartTime());
+            } else if ((1-gedfFactor) * p2.getDeadlineTime() <= p1.getDeadlineTime() &&
+                    p1.getDeadlineTime() <= (1+gedfFactor) * p2.getDeadlineTime()) {
                 // Equal deadline group. So same group in gEDF. SJF within group
-                return (int) (p1.getExecTime() - p2.getExecTime());
+                if (p1.getExecTime() == p2.getExecTime()) {
+                    return Double.compare(p1.getStartTime(), p2.getStartTime());
+                } else {
+                    return Double.compare(p1.getExecTime(), p2.getExecTime());
+                }
             } else {
-                return (int) (p1.getDeadlineTime() - p2.getDeadlineTime());
+                return Double.compare(p1.getDeadlineTime(), p2.getDeadlineTime());
             }
         }
     };
