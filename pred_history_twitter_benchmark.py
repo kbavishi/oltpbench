@@ -49,7 +49,9 @@ def generate_twitter_config(sched_policy, pred_history, arrival_rate=75,
 def run_twitter_benchmark(sched_policy, output_file, csv_file, iterations=11,
                           pred_history=5, arrival_rate=75, alpha=0.5,
                           gedf_factor=0.4):
-    generate_twitter_config(sched_policy, pred_history)
+    generate_twitter_config(sched_policy, pred_history,
+                            arrival_rate=arrival_rate, alpha=alpha,
+                            gedf_factor=gedf_factor)
 
     for i in xrange(iterations):
         # Always restart Postgres after each run
@@ -66,48 +68,42 @@ def run_twitter_benchmark(sched_policy, output_file, csv_file, iterations=11,
 
         open("%s.%s.txt" % (output_file, i), "w").write(output)
 
-def main(arrival_rate, alpha, gedf_factor):
+def main(arrival_rate, iterations, alpha, gedf_factor):
     print "CURRENTLY TESTING: %s, %s, %s" % (arrival_rate, alpha, gedf_factor)
     run_twitter_benchmark("fifo", "output/fifo", "fifo",
+                          iterations=iterations,
                           arrival_rate=arrival_rate, alpha=alpha,
                           gedf_factor=gedf_factor)
     run_twitter_benchmark("edf", "output/edf", "edf",
+                          iterations=iterations,
                           arrival_rate=arrival_rate, alpha=alpha,
                           gedf_factor=gedf_factor)
 
     # PLA EDF tests with different history sizes
     run_twitter_benchmark("edf_pred_loc", "output/edf_loc_100", "edf_loc_100",
-                          pred_history=100,
+                          pred_history=100, iterations=iterations,
                           arrival_rate=arrival_rate, alpha=alpha,
                           gedf_factor=gedf_factor)
     run_twitter_benchmark("edf_pred_loc", "output/edf_loc_500", "edf_loc_500",
-                          pred_history=500,
+                          pred_history=500, iterations=iterations,
                           arrival_rate=arrival_rate, alpha=alpha,
                           gedf_factor=gedf_factor)
     run_twitter_benchmark("edf_pred_loc", "output/edf_loc_1000", "edf_loc_1000",
-                          pred_history=1000,
-                          arrival_rate=arrival_rate, alpha=alpha,
-                          gedf_factor=gedf_factor)
-    run_twitter_benchmark("edf_pred_loc", "output/edf_loc_5000", "edf_loc_5000",
-                          pred_history=5000,
+                          pred_history=1000, iterations=iterations,
                           arrival_rate=arrival_rate, alpha=alpha,
                           gedf_factor=gedf_factor)
 
     # PLA gEDF tests with different history sizes
     run_twitter_benchmark("gedf_pred_loc", "output/gedf_loc_100", "gedf_loc_100",
-                          pred_history=100,
+                          pred_history=100, iterations=iterations,
                           arrival_rate=arrival_rate, alpha=alpha,
                           gedf_factor=gedf_factor)
     run_twitter_benchmark("gedf_pred_loc", "output/gedf_loc_500", "gedf_loc_500",
-                          pred_history=500,
+                          pred_history=500, iterations=iterations,
                           arrival_rate=arrival_rate, alpha=alpha,
                           gedf_factor=gedf_factor)
     run_twitter_benchmark("gedf_pred_loc", "output/gedf_loc_1000", "gedf_loc_1000",
-                          pred_history=1000,
-                          arrival_rate=arrival_rate, alpha=alpha,
-                          gedf_factor=gedf_factor)
-    run_twitter_benchmark("gedf_pred_loc", "output/gedf_loc_5000", "gedf_loc_5000",
-                          pred_history=5000,
+                          pred_history=1000, iterations=iterations,
                           arrival_rate=arrival_rate, alpha=alpha,
                           gedf_factor=gedf_factor)
 
@@ -126,6 +122,8 @@ if __name__ == '__main__':
                         help='Smoothing factor for EWMA')
     parser.add_argument('--gedf_factor', type=str, default='0.4',
                         help='gEDF factor for deadline grouping')
+    parser.add_argument('--iter', type=int, default=11,
+                        help='Number of times to repeat experiment')
 
     args = parser.parse_args()
 
@@ -139,10 +137,10 @@ if __name__ == '__main__':
     gedf_factor = float(args.gedf_factor)
     assert 0.0 <= gedf_factor <= 1.0, "Incorrect gedf value: %s" % gedf_factor
 
-    main(args.rate, alpha, gedf_factor)
+    main(args.rate, args.iter, alpha, gedf_factor)
 
     # Rename output and results directory for backups
-    os.rename("output",
-              "new_pred_data/ph_%s_alpha_%s_gedf_%s/output" % (args.rate, alpha, gedf_factor))
-    os.rename("results",
-              "new_pred_data/ph_%s_alpha_%s_gedf_%s/results" % (args.rate, alpha, gedf_factor))
+    parent_dir = "new_pred_data/ph_%s_alpha_%s_gedf_%s" % (args.rate, alpha,
+                                                           gedf_factor)
+    os.renames("output", "%s/output" % parent_dir)
+    os.renames("results", "%s/results" % parent_dir)
