@@ -299,7 +299,7 @@ public class WorkloadState {
        }
    }
 
-   public void updateCostEWMA(int type, long execNs, float cost) {
+   public void updateCostEWMA(int type, long execNs, double cost) {
        double currentCostSlope = execNs * 1.0 / cost;
        synchronized(this) {
            costSlope.put(type, this.alpha * currentCostSlope +

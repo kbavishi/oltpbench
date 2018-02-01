@@ -46,7 +46,7 @@ public class LatencyRecord implements Iterable<LatencyRecord.Sample> {
 
 	}
 
-    public void addLatency(int transType, float cost, long startNs, long execStartNs,
+    public void addLatency(int transType, double cost, long startNs, long execStartNs,
 		    long endNs, long expExecNs, int workerId, int phaseId) {
 		assert lastNs > 0;
 		assert lastNs - 500 <= startNs;
@@ -94,7 +94,7 @@ public class LatencyRecord implements Iterable<LatencyRecord.Sample> {
 	/** Stores the start time and latency for a single sample. Immutable. */
 	public static final class Sample implements Comparable<Sample> {
 		public final int tranType;
-		public final float cost;
+		public final double cost;
 		public long startNs;
 		public final int latencyUs;
 		public final int execLatencyUs;
@@ -102,7 +102,7 @@ public class LatencyRecord implements Iterable<LatencyRecord.Sample> {
 		public final int workerId;
 		public final int phaseId;
 
-        public Sample(int tranType, float cost, long startNs, int latencyUs,
+        public Sample(int tranType, double cost, long startNs, int latencyUs,
 		int execLatencyUs, int expExecLatencyUs, int workerId, int phaseId) {
 			this.tranType = tranType;
 			this.cost = cost;
