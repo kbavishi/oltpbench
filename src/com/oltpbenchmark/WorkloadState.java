@@ -106,7 +106,8 @@ public class WorkloadState {
     public static Comparator<SubmittedProcedure> edfComp = new Comparator<SubmittedProcedure>(){
         @Override
         public int compare(SubmittedProcedure p1, SubmittedProcedure p2) {
-			if (p1.getCost() == 0.0 && p2.getCost() == 0.0) {
+			if (Double.compare(p1.getCost(), 0.0) == 0 &&
+                    Double.compare(p2.getCost(), 0.0) == 0) {
 				return Double.compare(p1.getStartTime(), p2.getStartTime());
 			} else {
 				return Double.compare(p1.getDeadlineTime(), p2.getDeadlineTime());
@@ -118,7 +119,8 @@ public class WorkloadState {
     public static Comparator<SubmittedProcedure> gedfComp = new Comparator<SubmittedProcedure>(){
         @Override
         public int compare(SubmittedProcedure p1, SubmittedProcedure p2) {
-            if (p1.getCost() == 0.0 && p2.getCost() == 0.0) {
+			if (Double.compare(p1.getCost(), 0.0) == 0 &&
+                    Double.compare(p2.getCost(), 0.0) == 0) {
                 return Double.compare(p1.getStartTime(), p2.getStartTime());
             } else if ((1-gedfFactor) * p2.getDeadlineTime() <= p1.getDeadlineTime() &&
                     p1.getDeadlineTime() <= (1+gedfFactor) * p2.getDeadlineTime()) {

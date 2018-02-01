@@ -34,7 +34,7 @@ public class SubmittedProcedure {
     private final int type;
     private final long startTime;
     private final int num;
-    private final float cost;
+    private final double cost;
     private final long execTime;
     private final long deadlineTime;
 
@@ -69,7 +69,7 @@ public class SubmittedProcedure {
     public int getType() { return type; }
     public long getStartTime() { return startTime; }
     public int getNum() { return num; }
-    public float getCost() { return cost; }
+    public double getCost() { return cost; }
     public long getExecTime() { return execTime; }
     public long getDeadlineTime() { return deadlineTime; }
 }
