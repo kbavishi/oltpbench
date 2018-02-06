@@ -35,13 +35,14 @@ def trim_first_line(csv_file):
     run_bash_cmd("mv /tmp/x.csv %s" % csv_file)
 
 def generate_twitter_config(sched_policy, pred_history, arrival_rate=75,
-                            alpha=0.5, gedf_factor=0.4):
+                            alpha=0.5, gedf_factor=0.4, timeout=300):
     os.environ["POSTGRES_IP"] = POSTGRES_IP
     os.environ["SCHED_POLICY"] = sched_policy
     os.environ["PRED_HISTORY"] = str(pred_history)
     os.environ["RATE"] = str(arrival_rate)
     os.environ["ALPHA"] = "%.2f" % alpha
     os.environ["GEDF_FACTOR"] = "%.2f" % gedf_factor
+    os.environ["TIMEOUT"] = str(timeout)
 
     run_bash_cmd("j2 config/twitter_config.xml.j2 | "
                  "tee config/twitter_config.xml")
