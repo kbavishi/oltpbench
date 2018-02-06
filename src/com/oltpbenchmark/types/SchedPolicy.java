@@ -25,11 +25,13 @@ import java.util.Map;
 public enum SchedPolicy {
     FIFO(1),
     EDF(2),
-    EDF_PRED_LOC_OLD(3),
     EDF_PRED_LOC(4),
-    GEDF(5),
-    GEDF_PRED_LOC(6),
-    GEDF_PRED_LOC_OLD(7);
+    EDF_PRED_LOC_OLD(3),
+    EDF_PRED_BUF_LOC(5),
+    GEDF(6),
+    GEDF_PRED_LOC(7),
+    GEDF_PRED_LOC_OLD(8),
+    GEDF_PRED_BUF_LOC(9);
 
     private final int policy;
     private static Map map = new HashMap<>();

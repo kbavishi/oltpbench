@@ -51,6 +51,8 @@ public class WorkloadConfiguration {
     private int schedPolicy;
     private double alpha = 0.5;
     private double gedfFactor = 0.4;
+    private boolean fixedDeadline = false;
+    private long defaultDeadlineNs = 500000000;
     private int predResultsHistory = 5;
 	private double scaleFactor = 1.0;
 	private double selectivity = -1.0;
@@ -81,8 +83,9 @@ public class WorkloadConfiguration {
         assert (workloadState == null);
         workloadState = new WorkloadState(benchmarkState, works, terminals,
                                           this.schedPolicy, this.alpha,
-                                          this.gedfFactor,
-                                          this.predResultsHistory, traceReader);
+                                          this.gedfFactor, this.predResultsHistory,
+                                          this.fixedDeadline, this.defaultDeadlineNs,
+                                          traceReader);
         return workloadState;
     }
 
@@ -211,6 +214,22 @@ public class WorkloadConfiguration {
 		return this.gedfFactor;
 	}
 	
+	public void setFixedDeadline(boolean fixedDeadline) {
+		this.fixedDeadline = fixedDeadline;
+	}
+	
+	public boolean getFixedDeadline() {
+		return this.fixedDeadline;
+	}
+
+	public void setDefaultDeadlineNs(long defaultDeadlineNs) {
+		this.fixedDeadline = fixedDeadline;
+	}
+	
+	public long getDefaultDeadlineNs() {
+		return this.defaultDeadlineNs;
+	}
+
 	/**
 	 * Whether each worker should record the transaction's UserAbort messages
 	 * This primarily useful for debugging a benchmark

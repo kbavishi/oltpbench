@@ -73,16 +73,20 @@ public class WorkloadState {
     private HashMap<Integer, Double> costSlope = new HashMap<Integer, Double>();
     private double alpha = 0.5;
     private static double gedfFactor = 0.4;
+    private boolean fixedDeadline = false;
+    private long defaultDeadlineNs = 500000000;
 
     private int tweetRelPages;
     private int tweetRelTuples;
     private int tweetRelNDistinct;
     private float tweetRelSumFreq = (float) 0.0;
     private HashMap<Integer, Float> tweetRelFreqMap = new HashMap<Integer, Float>();
+    private HashMap<Integer, Double> hitProbMap = new HashMap<Integer, Double>();
+    private double defaultHitProb;
     
     public WorkloadState(BenchmarkState benchmarkState, List<Phase> works, int num_terminals,
             int schedPolicy, double alpha, double gedfFactor, int predResultsHistory,
-            TraceReader traceReader) {
+            boolean fixedDeadline, long defaultDeadlineNs, TraceReader traceReader) {
         this.benchmarkState = benchmarkState;
         this.works = works;
         this.num_terminals = num_terminals;
@@ -91,15 +95,32 @@ public class WorkloadState {
         this.alpha = alpha;
         this.gedfFactor = gedfFactor;
         this.RESULTS_QUEUE_LIMIT = predResultsHistory;
+        this.fixedDeadline = fixedDeadline;
+        this.defaultDeadlineNs = defaultDeadlineNs;
         this.traceReader = traceReader;
         
         phaseIterator = works.iterator();
         createWorkQueue();
-        try {
-            loadTableStatsFile();
-        } catch (IOException e) {
-            LOG.info("Unable to load table stats file");
+        switch (SchedPolicy.valueOf(this.schedPolicy)) {
+            case EDF_PRED_LOC:
+            case GEDF_PRED_LOC:
+                try {
+                    loadTableStatsFile();
+                } catch (IOException e) {
+                    LOG.info("Unable to load table stats file");
+                }
+                break;
+            case EDF_PRED_BUF_LOC:
+            case GEDF_PRED_BUF_LOC:
+                try {
+                    loadTableStatsFile();
+                    loadBufStatsFile();
+                } catch (IOException e) {
+                    LOG.info("Unable to load table / buffer stats file");
+                }
+                break;
         }
+
     }
 
     // EDF Comparator anonymous class implementation
@@ -144,11 +165,13 @@ public class WorkloadState {
             case EDF:
             case EDF_PRED_LOC:
             case EDF_PRED_LOC_OLD:
+            case EDF_PRED_BUF_LOC:
                 workQueue = new PriorityQueue<SubmittedProcedure>(100, edfComp);
                 break;
             case GEDF:
             case GEDF_PRED_LOC:
             case GEDF_PRED_LOC_OLD:
+            case GEDF_PRED_BUF_LOC:
                 workQueue = new PriorityQueue<SubmittedProcedure>(100, gedfComp);
                 break;
 
@@ -183,6 +206,35 @@ public class WorkloadState {
         }
     }
     
+    private void loadBufStatsFile() throws IOException {
+        String statsFilePath = System.getProperty("user.home") + File.separator + "buffer_stats.txt";
+        BufferedReader bufferStats;
+        try {
+            bufferStats = new BufferedReader(new FileReader(statsFilePath));
+        } catch (FileNotFoundException e) {
+            LOG.info("Could not load buffer stats file: " + statsFilePath);
+            return;
+        }
+
+        // Ignore the first 4 partition lines
+        String nextLine;
+        for (int i=0; i<4; i++) {
+            nextLine = bufferStats.readLine();
+        }
+        nextLine = bufferStats.readLine();
+        int pred_uid = 1;
+        while (nextLine != null) {
+            double hit_prob = Double.parseDouble(nextLine);
+            this.hitProbMap.put(pred_uid, hit_prob);
+            nextLine = bufferStats.readLine();
+            pred_uid++;
+        }
+
+        // We reached the end. We need to remove the last entry and use that as
+        // default hit prob
+        this.defaultHitProb = this.hitProbMap.remove(pred_uid-1);
+    }
+
     /**
     * Add a request to do work.
     * 
@@ -223,10 +275,10 @@ public class WorkloadState {
                         float cost = (float) proc[2];
                         ArrayList<Long> pred = (ArrayList<Long>) proc[3];
 
-                        if (pred != null) {
+                        if (pred != null && RESULTS_QUEUE_LIMIT != 0) {
                             // Check if we ran some query in the past with similar predicates
                             Iterator it = pred.iterator();
-                            float reduction = (float) 0.0;
+                            double reduction = 0.0;
                             HashMap<Long, Boolean> map;
 
                             boolean oldPLA = ((SchedPolicy.valueOf(this.schedPolicy) ==
@@ -238,17 +290,23 @@ public class WorkloadState {
                             while (it.hasNext()) {
                                 Long predUid = (Long) it.next();
 
-                                if (resultsUnion.containsKey(predUid)) {
+                                int count = resultsUnion.getOrDefault(predUid, 0);
+                                if (count != 0) {
                                     if (oldPLA) {
                                         // Reduction is roughly 599.95 per
                                         // predicate. We reduce by close to 50%
                                         reduction += 1500.0;
                                     } else {
-                                        float freq = 0;
+                                        // We start with an initial frequency
+                                        // corresponding to the relative
+                                        // popularity of the predicate
+                                        double freq = count * 1.0 / resultsQueue.size();
                                         if (tweetRelFreqMap.containsKey(predUid)) {
-                                            freq = tweetRelFreqMap.get(predUid);
+                                            // One of the top-hitters
+                                            freq = freq * tweetRelFreqMap.get(predUid);
                                         } else {
-                                            freq = (1 - tweetRelSumFreq) /
+                                            // Not one of the top hitters
+                                            freq = freq * (1 - tweetRelSumFreq) /
                                                 (tweetRelNDistinct - tweetRelFreqMap.size());
                                         }
                                         reduction += (freq * tweetRelTuples * RANDOM_PAGE_COST);
@@ -256,11 +314,38 @@ public class WorkloadState {
                                 }
                             }
                             cost -= reduction;
+                        } else if (pred != null && this.hitProbMap.size() != 0) {
+                            Iterator it = pred.iterator();
+                            double reduction = 0.0;
+                            while (it.hasNext()) {
+                                Long predUid = (Long) it.next();
+
+                                // We need to use the buffer pool hit probability
+                                // estimates
+                                double freq = hitProbMap.getOrDefault(predUid, defaultHitProb);
+                                if (tweetRelFreqMap.containsKey(predUid)) {
+                                    // One of the top-hitters
+                                    freq = freq * tweetRelFreqMap.get(predUid);
+                                } else {
+                                    // Not one of the top hitters
+                                    freq = freq * (1 - tweetRelSumFreq) /
+                                        (tweetRelNDistinct - tweetRelFreqMap.size());
+                                }
+                                reduction += (freq * tweetRelTuples * RANDOM_PAGE_COST);
+                            }
+                            cost -= reduction;
                         }
 
                         // Convert cost into some form of deadline, so we can simulate EDF
                         long execTime = (long) (cost * costSlope.getOrDefault(type, 25000.0));
-                        long deadlineTime = startTime + 10 * execTime;
+                        long deadlineTime;
+                        if (this.fixedDeadline) {
+                            // Fixed query deadline specified by user
+                            deadlineTime = startTime + defaultDeadlineNs;
+                        } else {
+                            // Pick deadline based on estimated execution time
+                            deadlineTime = startTime + 10 * execTime;
+                        }
 
                         workQueue.add(new SubmittedProcedure(type, startTime,
                                 num, cost, execTime, deadlineTime));
@@ -384,6 +469,10 @@ public class WorkloadState {
     }
 
     public void updateTweetResults(ArrayList<Object> results) {
+        if (RESULTS_QUEUE_LIMIT == 0) {
+            // We don't need to store results. Return
+            return;
+        }
         Iterator it = results.iterator();
         LinkedList<Long> predicates = new LinkedList<Long>();
 

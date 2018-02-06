@@ -47,7 +47,7 @@ def generate_twitter_config(sched_policy, pred_history, arrival_rate=75,
                  "tee config/twitter_config.xml")
 
 def run_twitter_benchmark(sched_policy, output_file, csv_file, iterations=11,
-                          pred_history=5, arrival_rate=75, alpha=0.5,
+                          pred_history=0, arrival_rate=75, alpha=0.5,
                           gedf_factor=0.4):
     generate_twitter_config(sched_policy, pred_history,
                             arrival_rate=arrival_rate, alpha=alpha,
@@ -80,12 +80,12 @@ def main(arrival_rate, iterations, alpha, gedf_factor):
                           gedf_factor=gedf_factor)
 
     # PLA EDF tests with different history sizes
-    run_twitter_benchmark("edf_pred_loc", "output/edf_loc_100", "edf_loc_100",
-                          pred_history=100, iterations=iterations,
+    run_twitter_benchmark("edf_pred_loc", "output/edf_loc_10", "edf_loc_10",
+                          pred_history=10, iterations=iterations,
                           arrival_rate=arrival_rate, alpha=alpha,
                           gedf_factor=gedf_factor)
-    run_twitter_benchmark("edf_pred_loc", "output/edf_loc_500", "edf_loc_500",
-                          pred_history=500, iterations=iterations,
+    run_twitter_benchmark("edf_pred_loc", "output/edf_loc_100", "edf_loc_100",
+                          pred_history=100, iterations=iterations,
                           arrival_rate=arrival_rate, alpha=alpha,
                           gedf_factor=gedf_factor)
     run_twitter_benchmark("edf_pred_loc", "output/edf_loc_1000", "edf_loc_1000",
@@ -94,18 +94,28 @@ def main(arrival_rate, iterations, alpha, gedf_factor):
                           gedf_factor=gedf_factor)
 
     # PLA gEDF tests with different history sizes
-    run_twitter_benchmark("gedf_pred_loc", "output/gedf_loc_100", "gedf_loc_100",
-                          pred_history=100, iterations=iterations,
+    run_twitter_benchmark("gedf_pred_loc", "output/gedf_loc_10", "gedf_loc_10",
+                          pred_history=10, iterations=iterations,
                           arrival_rate=arrival_rate, alpha=alpha,
                           gedf_factor=gedf_factor)
-    run_twitter_benchmark("gedf_pred_loc", "output/gedf_loc_500", "gedf_loc_500",
-                          pred_history=500, iterations=iterations,
+    run_twitter_benchmark("gedf_pred_loc", "output/gedf_loc_100", "gedf_loc_100",
+                          pred_history=100, iterations=iterations,
                           arrival_rate=arrival_rate, alpha=alpha,
                           gedf_factor=gedf_factor)
     run_twitter_benchmark("gedf_pred_loc", "output/gedf_loc_1000", "gedf_loc_1000",
                           pred_history=1000, iterations=iterations,
                           arrival_rate=arrival_rate, alpha=alpha,
                           gedf_factor=gedf_factor)
+
+    # PLA Buf-Loc EDF and gEDF
+    run_twitter_benchmark("edf_pred_buf_loc", "output/edf_pred_buf_loc",
+                          "edf_pred_buf_loc", iterations=iterations,
+                          arrival_rate=arrival_rate,
+                          alpha=alpha, gedf_factor=gedf_factor)
+    run_twitter_benchmark("gedf_pred_buf_loc", "output/gedf_pred_buf_loc",
+                          "gedf_pred_buf_loc", iterations=iterations,
+                          arrival_rate=arrival_rate,
+                          alpha=alpha, gedf_factor=gedf_factor)
 
 if __name__ == '__main__':
     # Create necessary directories
