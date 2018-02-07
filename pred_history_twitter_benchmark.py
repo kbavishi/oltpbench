@@ -35,7 +35,8 @@ def trim_first_line(csv_file):
     run_bash_cmd("mv /tmp/x.csv %s" % csv_file)
 
 def generate_twitter_config(sched_policy, pred_history, arrival_rate=75,
-                            alpha=0.5, gedf_factor=0.4, timeout=300):
+                            alpha=0.5, gedf_factor=0.4, timeout=300,
+                            fixed_deadline="false"):
     os.environ["POSTGRES_IP"] = POSTGRES_IP
     os.environ["SCHED_POLICY"] = sched_policy
     os.environ["PRED_HISTORY"] = str(pred_history)
@@ -43,6 +44,7 @@ def generate_twitter_config(sched_policy, pred_history, arrival_rate=75,
     os.environ["ALPHA"] = "%.2f" % alpha
     os.environ["GEDF_FACTOR"] = "%.2f" % gedf_factor
     os.environ["TIMEOUT"] = str(timeout)
+    os.environ["FIXED_DEADLINE"] = fixed_deadline
 
     run_bash_cmd("j2 config/twitter_config.xml.j2 | "
                  "tee config/twitter_config.xml")
@@ -135,6 +137,8 @@ if __name__ == '__main__':
                         help='gEDF factor for deadline grouping')
     parser.add_argument('--iter', type=int, default=11,
                         help='Number of times to repeat experiment')
+    parser.add_argument('--fixed_deadline', type=str, default="false",
+                        help="Choose a fixed deadline for queries")
 
     args = parser.parse_args()
 
