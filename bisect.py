@@ -47,18 +47,19 @@ def get_partition_access_probs(cur, num_partitions):
     all_probs += [(q2+q4)]
 
     # 5 onwards: Popular UID tweet partitions
-    cur.execute("SELECT COUNT(*) FROM follows")
-    total_tweet_count = int(cur.fetchall()[0][0])
+    cur.execute("SELECT COUNT(*) FROM user_profiles")
+    total_user_count = int(cur.fetchall()[0][0])
 
-    popular_tweets_sum = 0
     for uid in xrange(1, num_partitions):
         num = get_num_follows_rows(cur, uid)
-        popular_tweets_sum += num
-        all_probs += [(q2+q4) * num * 1.0/total_tweet_count]
+        all_probs += [(q2+q4) * num * 1.0/total_user_count]
 
     # Last: Unpopular tweets
-    all_probs += [(q2+q4+q1+q5) * (1 - (popular_tweets_sum) *
-                                   1.0/total_tweet_count)]
+    cur.execute("SELECT COUNT(DISTINCT(f1)) FROM follows WHERE f2 NOT IN (%s);" % 
+                ",".join(map(str, xrange(1, num_partitions))))
+    other_user_count = int(cur.fetchall()[0][0])
+
+    all_probs += [(q2+q4+q1+q5) * other_user_count/total_user_count]
 
     filename = os.path.join(os.getenv("HOME"),
                             "hits_stats_%s.txt" % num_partitions)
