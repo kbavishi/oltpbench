@@ -81,7 +81,7 @@ public class WorkloadState {
     private int tweetRelNDistinct;
     private float tweetRelSumFreq = (float) 0.0;
     private HashMap<Integer, Float> tweetRelFreqMap = new HashMap<Integer, Float>();
-    private HashMap<Integer, Double> hitProbMap = new HashMap<Integer, Double>();
+    private HashMap<Long, Double> hitProbMap = new HashMap<Long, Double>();
     private double defaultHitProb;
     
     public WorkloadState(BenchmarkState benchmarkState, List<Phase> works, int num_terminals,
@@ -222,7 +222,7 @@ public class WorkloadState {
             nextLine = bufferStats.readLine();
         }
         nextLine = bufferStats.readLine();
-        int pred_uid = 1;
+        Long pred_uid = 1L;
         while (nextLine != null) {
             double hit_prob = Double.parseDouble(nextLine);
             this.hitProbMap.put(pred_uid, hit_prob);
