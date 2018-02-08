@@ -129,9 +129,9 @@ public class WorkloadState {
         public int compare(SubmittedProcedure p1, SubmittedProcedure p2) {
 			if (Double.compare(p1.getCost(), 0.0) == 0 &&
                     Double.compare(p2.getCost(), 0.0) == 0) {
-				return Double.compare(p1.getStartTime(), p2.getStartTime());
+				return Long.compare(p1.getStartTime(), p2.getStartTime());
 			} else {
-				return Double.compare(p1.getDeadlineTime(), p2.getDeadlineTime());
+				return Long.compare(p1.getDeadlineTime(), p2.getDeadlineTime());
 			}
         }
     };
@@ -140,19 +140,27 @@ public class WorkloadState {
     public static Comparator<SubmittedProcedure> gedfComp = new Comparator<SubmittedProcedure>(){
         @Override
         public int compare(SubmittedProcedure p1, SubmittedProcedure p2) {
-			if (Double.compare(p1.getCost(), 0.0) == 0 &&
-                    Double.compare(p2.getCost(), 0.0) == 0) {
-                return Double.compare(p1.getStartTime(), p2.getStartTime());
-            } else if ((1-gedfFactor) * p2.getDeadlineTime() <= p1.getDeadlineTime() &&
-                    p1.getDeadlineTime() <= (1+gedfFactor) * p2.getDeadlineTime()) {
+            double p1_cost = p1.getCost();
+            double p2_cost = p2.getCost();
+            long p1_deadline = p1.getDeadlineTime();
+            long p2_deadline = p2.getDeadlineTime();
+            long p1_exec_time = p1.getExecTime();
+            long p2_exec_time = p2.getExecTime();
+
+			if (Double.compare(p1_cost, 0.0) == 0 && Double.compare(p2_cost, 0.0) == 0) {
+                // Both costs are zero. Just imitate FIFO
+                return Long.compare(p1.getStartTime(), p2.getStartTime());
+
+            } else if ((1-gedfFactor) * p2_deadline <= p1_deadline &&
+                    p1_deadline <= (1+gedfFactor) * p2_deadline) {
                 // Equal deadline group. So same group in gEDF. SJF within group
-                if (p1.getExecTime() == p2.getExecTime()) {
-                    return Double.compare(p1.getStartTime(), p2.getStartTime());
+                if (p1_exec_time == p2_exec_time) {
+                    return Long.compare(p1.getStartTime(), p2.getStartTime());
                 } else {
-                    return Double.compare(p1.getExecTime(), p2.getExecTime());
+                    return Long.compare(p1_exec_time, p2_exec_time);
                 }
             } else {
-                return Double.compare(p1.getDeadlineTime(), p2.getDeadlineTime());
+                return Long.compare(p1_deadline, p2_deadline);
             }
         }
     };
@@ -388,7 +396,7 @@ public class WorkloadState {
        double currentCostSlope = execNs * 1.0 / cost;
        synchronized(this) {
            costSlope.put(type, this.alpha * currentCostSlope +
-                   (1-this.alpha) * costSlope.getOrDefault(type, 0.0));
+                   (1-this.alpha) * costSlope.getOrDefault(type, 25000.0));
        }
    }
    
