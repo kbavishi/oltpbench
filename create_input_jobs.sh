@@ -1,7 +1,9 @@
 #! /usr/bin/env bash
 
 echo "Sanitizing input jobs trace file"
-cut -f1 -d " " --complement input_jobs.txt > /tmp/jobs.txt
+grep JOB ~/input_jobs.txt > /tmp/jobs.txt
+cp /tmp/jobs.txt ~/input_jobs.txt
+cut -f1 -d " " --complement ~/input_jobs.txt > /tmp/jobs.txt
 sed -i 's/(GetTweet.java:35) INFO  - JOB GetTweet: /1,/' /tmp/jobs.txt
 sed -i 's/(GetTweetsFromFollowing.java:45) INFO  - JOB GetTweetsFromFollowing: /2,/' /tmp/jobs.txt
 sed -i 's/(GetFollowers.java:42) INFO  - JOB GetFollowers: /3,/' /tmp/jobs.txt
