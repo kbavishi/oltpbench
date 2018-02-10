@@ -13,8 +13,7 @@ LIMIT_TWEETS_FOR_UID = 10
 stats = {}
 Cs, Cr, Ct, Ci, Co = 1.0, 18.73, 0.0017, 0.0014, 0.0002
 Stats = namedtuple("Stats", ["relpages", "reltuples", "n_distinct",
-                             "most_common_freqs", "sum_mcf", "tree_level"],
-                   verbose=True)
+                             "most_common_freqs", "sum_mcf", "tree_level"])
 
 def get_plan_cost(output):
     for line in output.split("\n"):
@@ -146,28 +145,35 @@ def create_table_stats_file(cur, table_name, attr_name, index_name):
     cur.execute("SELECT n_distinct, most_common_vals, most_common_freqs FROM pg_stats "
                 "WHERE tablename='%s' AND attname='%s'" % (table_name, attr_name))
     n_distinct, most_common_vals, most_common_freqs = cur.fetchone()
-    most_common_vals = most_common_vals.strip("{").strip("}")
+    if not most_common_vals:
+        most_common_vals = ""
+    else:
+        most_common_vals = most_common_vals.strip("{").strip("}")
     cur.execute("SELECT tree_level FROM pgstatindex('%s')" % index_name)
-    tree_level = int(cur.fetchone())
+    tree_level = int(cur.fetchone()[0])
 
     # Update in-memory information
+    mcv = map(int, filter(None, most_common_vals.split(",")))
     mcf = {}
     sum_mcf = 0.0
-    for i in xrange(len(most_common_vals)):
-        mcf[int(most_common_vals[i])] = most_common_freqs[i]
+    for i in xrange(len(mcv)):
+        mcf[mcv[i]] = most_common_freqs[i]
         sum_mcf += most_common_freqs[i]
 
     stats[table_name] = Stats(relpages, reltuples, n_distinct,
                               mcf, sum_mcf, tree_level)
-    most_common_freqs = ",".join(map(str, most_common_freqs))
+    if most_common_freqs:
+        most_common_freqs = ",".join(map(str, most_common_freqs))
 
     filename = os.path.join(os.getenv("HOME"), "%s_stats.txt" % table_name)
     with open(filename, "w") as f:
         f.write("%s,%s\n" % (int(relpages), int(reltuples)))
         f.write("%s\n" % int(n_distinct))
         f.write("%s\n" % tree_level)
-        f.write("%s\n" % most_common_vals)
-        f.write("%s" % most_common_freqs)
+        if most_common_vals:
+            f.write("%s\n" % most_common_vals)
+        if most_common_freqs:
+            f.write("%s" % most_common_freqs)
 
 if __name__ == '__main__':
     if len(sys.argv) not in [4, 5]:
@@ -180,6 +186,7 @@ if __name__ == '__main__':
     create_table_stats_file(cur, "tweets", "uid", "idx_tweets_uid")
     create_table_stats_file(cur, "follows", "f1", "follows_pkey")
     create_table_stats_file(cur, "followers", "f1", "followers_pkey")
+    create_table_stats_file(cur, "user_profiles", "uid", "user_profiles_pkey")
 
     print_pred = (sys.argv[4] == "true")
     read_input_file(cur, print_pred=print_pred)
