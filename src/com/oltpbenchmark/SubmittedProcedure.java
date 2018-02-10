@@ -56,7 +56,7 @@ public class SubmittedProcedure {
 	this.deadlineTime = -1;
     }
 
-    SubmittedProcedure(int type, long startTime, int num, float cost,
+    SubmittedProcedure(int type, long startTime, int num, double cost,
 		    long execTime, long deadlineTime) {
         this.type = type;
         this.startTime = startTime;

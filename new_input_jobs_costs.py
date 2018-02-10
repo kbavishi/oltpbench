@@ -169,7 +169,6 @@ def create_table_stats_file(cur, table_name, attr_name, index_name):
     with open(filename, "w") as f:
         f.write("%s,%s\n" % (int(relpages), int(reltuples)))
         f.write("%s\n" % int(n_distinct))
-        f.write("%s\n" % tree_level)
         if most_common_vals:
             f.write("%s\n" % most_common_vals)
         if most_common_freqs:

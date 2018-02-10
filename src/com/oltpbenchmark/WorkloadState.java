@@ -102,7 +102,6 @@ public class WorkloadState {
 
     private int usersRelPages;
     private int usersRelTuples;
-    private int usersRelNDistinct;
     private double usersDefaultHitProb;
 
     public WorkloadState(BenchmarkState benchmarkState, List<Phase> works, int num_terminals,
@@ -327,7 +326,6 @@ public class WorkloadState {
         String[] array = nextLine.split(",", 0);
         this.usersRelPages = Integer.parseInt(array[0]);
         this.usersRelTuples = Integer.parseInt(array[1]);
-        this.usersRelNDistinct = Integer.parseInt(tableStats.readLine());
     }
     
     private void loadBufStatsFile() throws IOException {
@@ -408,7 +406,7 @@ public class WorkloadState {
                         int type = (int) proc[0];
                         long startTime = System.nanoTime();
                         int num = (int) proc[1];
-                        float cost = (float) proc[2];
+                        double cost = (double) proc[2];
                         ArrayList<Long> pred = (ArrayList<Long>) proc[3];
 
                         if (fullBufPLA && pred == null) {

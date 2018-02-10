@@ -185,14 +185,14 @@ public class Phase {
                 String[] array = nextLine.split(",", 0);
                 int transType = Integer.parseInt(array[0]);
                 int num = Integer.parseInt(array[1]);
-                float cost = (float) 0.0;
+                double cost = 0.0;
                 ArrayList<Long> pred = null;
                 if (array.length == 3) {
                     // EDF, GEDF
                     cost = Float.parseFloat(array[2]);
                 } else if (array.length > 3) {
                     // Locality-aware EDF, GEDF
-                    cost = Float.parseFloat(array[2]);
+                    cost = Double.parseDouble(array[2]);
                     pred = new ArrayList<Long>(array.length-3);
                     for (int i=3; i<array.length; i++) {
                         pred.add(Long.parseLong(array[i]));
