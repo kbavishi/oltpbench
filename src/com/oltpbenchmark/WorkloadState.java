@@ -485,16 +485,26 @@ public class WorkloadState {
                         } else if (pred != null) {
                             // Common for both fullBufPLA and BufPLA
                             Iterator it = pred.iterator();
-                            double reduction = 0.0;
+                            double hitRate, sel, reduction = 0.0;
                             while (it.hasNext()) {
                                 Long predUid = (Long) it.next();
                                 // We need to use the buffer pool hit
                                 // probability estimates
-                                double hitRate = tweetsHitProbMap.getOrDefault(predUid,
+                                hitRate = tweetsHitProbMap.getOrDefault(predUid,
                                         tweetsDefaultHitProb);
-                                double sel = tweetRelFreqMap.getOrDefault(predUid,
+                                sel = tweetRelFreqMap.getOrDefault(predUid,
                                         tweetsDefaultSelectivity);
                                 reduction += (sel * tweetRelTuples *
+                                              hitRate * RANDOM_PAGE_COST);
+                            }
+
+                            if (fullBufPLA) {
+                                // Also need to discount for the initial
+                                // checking of followers table
+                                hitRate = this.followsDefaultHitProb;
+                                sel = followsRelFreqMap.getOrDefault(num,
+                                        followsDefaultSelectivity);
+                                reduction += (Math.min(100, sel * followsRelTuples) *
                                               hitRate * RANDOM_PAGE_COST);
                             }
                             cost -= reduction;

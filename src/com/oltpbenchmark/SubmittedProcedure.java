@@ -41,10 +41,10 @@ public class SubmittedProcedure {
     SubmittedProcedure(int type) {
         this.type = type;
         this.startTime = System.nanoTime();
-	this.num = -1;
-	this.cost = -1;
-	this.execTime = -1;
-	this.deadlineTime = -1;
+        this.num = -1;
+        this.cost = -1;
+        this.execTime = -1;
+        this.deadlineTime = -1;
     }
 
     SubmittedProcedure(int type, long startTime) {
