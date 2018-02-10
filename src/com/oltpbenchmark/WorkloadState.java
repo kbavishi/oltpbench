@@ -394,8 +394,10 @@ public class WorkloadState {
                 return;
            } else {
                 if (benchmarkState.getState() != State.WARMUP) {
-                    boolean fullBufPLA = (SchedPolicy.valueOf(this.schedPolicy) ==
-                                          SchedPolicy.EDF_PRED_BUF_LOC_FULL);
+                    boolean fullBufPLA = ((SchedPolicy.valueOf(this.schedPolicy) ==
+                                           SchedPolicy.EDF_PRED_BUF_LOC_FULL) ||
+                                          (SchedPolicy.valueOf(this.schedPolicy) ==
+                                           SchedPolicy.GEDF_PRED_BUF_LOC_FULL));
 
                     // Add the specified number of procedures to the end of the queue.
                     for (int i = 0; i < amount; ++i) {
@@ -409,7 +411,7 @@ public class WorkloadState {
                         double cost = (double) proc[2];
                         ArrayList<Long> pred = (ArrayList<Long>) proc[3];
 
-                        if (fullBufPLA && pred == null) {
+                        if (fullBufPLA == true && pred == null) {
                             // For Query type 2, we have to look at the
                             // individual predicates to find out the reduction.
                             // For everything else, it is quite simple
@@ -427,20 +429,20 @@ public class WorkloadState {
                                 hitRate = this.followersDefaultHitProb;
                                 sel = followersRelFreqMap.getOrDefault(num,
                                         followersDefaultSelectivity);
-                                reduction += (Math.min(100, sel * followersRelTuples) *
+                                reduction += (Math.min(100.0, sel * followersRelTuples) *
                                               hitRate * RANDOM_PAGE_COST);
                                 // Next, we fetch user profile info about those
                                 // followers
                                 hitRate = this.usersDefaultHitProb;
-                                reduction += (Math.min(100, sel * followersRelTuples) *
+                                reduction += (Math.min(100.0, sel * followersRelTuples) *
                                               hitRate * RANDOM_PAGE_COST);
                             } else if (type == 4) {
                                 // GetTweetsForUser
                                 hitRate = this.tweetsHitProbMap.getOrDefault(num,
                                         tweetsDefaultHitProb);
-                                sel = followersRelFreqMap.getOrDefault(num,
-                                        followersDefaultSelectivity);
-                                reduction += (Math.min(10, sel * followersRelTuples) *
+                                sel = tweetRelFreqMap.getOrDefault(num,
+                                        tweetsDefaultSelectivity);
+                                reduction += (Math.min(10.0, sel * tweetRelTuples) *
                                               hitRate * RANDOM_PAGE_COST);
                             } else if (type == 5) {
                                 // InsertTweet
