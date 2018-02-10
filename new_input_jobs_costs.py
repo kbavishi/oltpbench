@@ -69,10 +69,10 @@ def get_followers(cur, uid):
         efr = fstats.reltuples * sel
 
     # XXX - Ideally there would have been efr random I/Os, but our buffer
-    # locality will really discount this, so assume just 1 I/O
+    # locality will not really discount this, so assume just 1 I/O
     cost = (fstats.tree_level + 1) * Cr + min(efr, LIMIT_FOLLOWERS) * (Ci + Ct)
     eur = min(LIMIT_FOLLOWERS, efr)
-    cost += (ustats.tree_level + 1 + eur) * eur * Cr + eur * (Ci + Ct)
+    cost += (ustats.tree_level + 1 + eur) * Cr + eur * (Ci + Ct)
 
     return cost
 

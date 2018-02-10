@@ -144,6 +144,7 @@ public class WorkloadState {
                 try {
                     loadTweetsStatsFile();
                     loadFollowsStatsFile();
+                    loadFollowersStatsFile();
                     loadUsersStatsFile();
                     loadBufStatsFile();
                 } catch (IOException e) {
