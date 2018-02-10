@@ -206,12 +206,14 @@ public class WorkloadState {
             case EDF_PRED_LOC:
             case EDF_PRED_LOC_OLD:
             case EDF_PRED_BUF_LOC:
+            case EDF_PRED_BUF_LOC_FULL:
                 workQueue = new PriorityQueue<SubmittedProcedure>(100, edfComp);
                 break;
             case GEDF:
             case GEDF_PRED_LOC:
             case GEDF_PRED_LOC_OLD:
             case GEDF_PRED_BUF_LOC:
+            case GEDF_PRED_BUF_LOC_FULL:
                 workQueue = new PriorityQueue<SubmittedProcedure>(100, gedfComp);
                 break;
 
