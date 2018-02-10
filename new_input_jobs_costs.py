@@ -132,9 +132,9 @@ def read_input_file(cur, limit=2000000, print_pred=False):
         cost, extra = run_transaction(cur, trans_type, num)
 
         if extra and print_pred:
-            print "%s,%s,%s,%s" % (trans_type, num, cost, extra)
+            print "%s,%s,%.2f,%s" % (trans_type, num, cost, extra)
         else:
-            print "%s,%s,%s" % (trans_type, num, cost)
+            print "%s,%s,%.2f" % (trans_type, num, cost)
 
         line = f.readline()
 
