@@ -28,10 +28,12 @@ public enum SchedPolicy {
     EDF_PRED_LOC(4),
     EDF_PRED_LOC_OLD(3),
     EDF_PRED_BUF_LOC(5),
-    GEDF(6),
-    GEDF_PRED_LOC(7),
-    GEDF_PRED_LOC_OLD(8),
-    GEDF_PRED_BUF_LOC(9);
+    EDF_PRED_BUF_LOC_FULL(6),
+    GEDF(7),
+    GEDF_PRED_LOC(8),
+    GEDF_PRED_LOC_OLD(9),
+    GEDF_PRED_BUF_LOC(10),
+    GEDF_PRED_BUF_LOC_FULL(11);
 
     private final int policy;
     private static Map map = new HashMap<>();

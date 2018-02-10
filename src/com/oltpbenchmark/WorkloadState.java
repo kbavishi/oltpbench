@@ -79,11 +79,32 @@ public class WorkloadState {
     private int tweetRelPages;
     private int tweetRelTuples;
     private int tweetRelNDistinct;
-    private float tweetRelSumFreq = (float) 0.0;
-    private HashMap<Integer, Float> tweetRelFreqMap = new HashMap<Integer, Float>();
-    private HashMap<Long, Double> hitProbMap = new HashMap<Long, Double>();
-    private double defaultHitProb;
+    private double tweetsDefaultSelectivity = 0.0;
+    private HashMap<Integer, Double> tweetRelFreqMap = new HashMap<Integer, Double>();
+    private HashMap<Long, Double> tweetsHitProbMap = new HashMap<Long, Double>();
+    private double tweetsDefaultHitProb;
     
+    private int followsRelPages;
+    private int followsRelTuples;
+    private int followsRelNDistinct;
+    private double followsDefaultSelectivity = 0.0;
+    private HashMap<Integer, Double> followsRelFreqMap = new HashMap<Integer, Double>();
+    private double followsDefaultHitProb;
+
+    private int followersRelPages;
+    private int followersRelTuples;
+    private int followersRelNDistinct;
+    private double followersDefaultSelectivity = 0.0;
+    private HashMap<Integer, Double> followersRelFreqMap = new HashMap<Integer, Double>();
+    private double followersDefaultHitProb;
+
+    private double tweetsUidDefaultHitProb;
+
+    private int usersRelPages;
+    private int usersRelTuples;
+    private int usersRelNDistinct;
+    private double usersDefaultHitProb;
+
     public WorkloadState(BenchmarkState benchmarkState, List<Phase> works, int num_terminals,
             int schedPolicy, double alpha, double gedfFactor, int predResultsHistory,
             boolean fixedDeadline, long defaultDeadlineNs, TraceReader traceReader) {
@@ -105,7 +126,7 @@ public class WorkloadState {
             case EDF_PRED_LOC:
             case GEDF_PRED_LOC:
                 try {
-                    loadTableStatsFile();
+                    loadTweetsStatsFile();
                 } catch (IOException e) {
                     LOG.info("Unable to load table stats file");
                 }
@@ -113,7 +134,18 @@ public class WorkloadState {
             case EDF_PRED_BUF_LOC:
             case GEDF_PRED_BUF_LOC:
                 try {
-                    loadTableStatsFile();
+                    loadTweetsStatsFile();
+                    loadBufStatsFile();
+                } catch (IOException e) {
+                    LOG.info("Unable to load table / buffer stats file");
+                }
+                break;
+            case EDF_PRED_BUF_LOC_FULL:
+            case GEDF_PRED_BUF_LOC_FULL:
+                try {
+                    loadTweetsStatsFile();
+                    loadFollowsStatsFile();
+                    loadUsersStatsFile();
                     loadBufStatsFile();
                 } catch (IOException e) {
                     LOG.info("Unable to load table / buffer stats file");
@@ -186,13 +218,13 @@ public class WorkloadState {
         }
     }
 
-    private void loadTableStatsFile() throws IOException {
-        String statsFilePath = System.getProperty("user.home") + File.separator + "table_stats.txt";
+    private void loadTweetsStatsFile() throws IOException {
+        String statsFilePath = System.getProperty("user.home") + File.separator + "tweets_stats.txt";
         BufferedReader tableStats;
         try {
             tableStats = new BufferedReader(new FileReader(statsFilePath));
         } catch (FileNotFoundException e) {
-            LOG.info("Could not load table stats file: " + statsFilePath);
+            LOG.info("Could not load tweets stats file: " + statsFilePath);
             return;
         }
 
@@ -207,11 +239,93 @@ public class WorkloadState {
         nextLine = tableStats.readLine();
         String[] mc_freqs = nextLine.split(",", 0);
 
+        double tweetsSumFreq = 0.0;
         for (int i=0; i<mc_vals.length; i++) {
-            this.tweetRelSumFreq += Float.parseFloat(mc_freqs[i]);
+            tweetsSumFreq += Double.parseDouble(mc_freqs[i]);
             this.tweetRelFreqMap.put(Integer.parseInt(mc_vals[i]),
-                                     Float.parseFloat(mc_freqs[i]));
+                                     Double.parseDouble(mc_freqs[i]));
         }
+        this.tweetsDefaultSelectivity = (1 - tweetsSumFreq) /
+            (this.tweetRelNDistinct - tweetRelFreqMap.size());
+    }
+
+    private void loadFollowsStatsFile() throws IOException {
+        String statsFilePath = System.getProperty("user.home") + File.separator + "follows_stats.txt";
+        BufferedReader tableStats;
+        try {
+            tableStats = new BufferedReader(new FileReader(statsFilePath));
+        } catch (FileNotFoundException e) {
+            LOG.info("Could not load follows stats file: " + statsFilePath);
+            return;
+        }
+
+        String nextLine = tableStats.readLine();
+        String[] array = nextLine.split(",", 0);
+        this.followsRelPages = Integer.parseInt(array[0]);
+        this.followsRelTuples = Integer.parseInt(array[1]);
+        this.followsRelNDistinct = Integer.parseInt(tableStats.readLine());
+
+        nextLine = tableStats.readLine();
+        String[] mc_vals = nextLine.split(",", 0);
+        nextLine = tableStats.readLine();
+        String[] mc_freqs = nextLine.split(",", 0);
+
+        double followsSumFreq = 0.0;
+        for (int i=0; i<mc_vals.length; i++) {
+            followsSumFreq += Double.parseDouble(mc_freqs[i]);
+            this.followsRelFreqMap.put(Integer.parseInt(mc_vals[i]),
+                                       Double.parseDouble(mc_freqs[i]));
+        }
+        this.followsDefaultSelectivity = (1 - followsSumFreq) /
+            (this.followsRelNDistinct - followsRelFreqMap.size());
+    }
+
+    private void loadFollowersStatsFile() throws IOException {
+        String statsFilePath = System.getProperty("user.home") + File.separator + "followers_stats.txt";
+        BufferedReader tableStats;
+        try {
+            tableStats = new BufferedReader(new FileReader(statsFilePath));
+        } catch (FileNotFoundException e) {
+            LOG.info("Could not load followers stats file: " + statsFilePath);
+            return;
+        }
+
+        String nextLine = tableStats.readLine();
+        String[] array = nextLine.split(",", 0);
+        this.followersRelPages = Integer.parseInt(array[0]);
+        this.followersRelTuples = Integer.parseInt(array[1]);
+        this.followersRelNDistinct = Integer.parseInt(tableStats.readLine());
+
+        nextLine = tableStats.readLine();
+        String[] mc_vals = nextLine.split(",", 0);
+        nextLine = tableStats.readLine();
+        String[] mc_freqs = nextLine.split(",", 0);
+
+        double followersSumFreq = 0.0;
+        for (int i=0; i<mc_vals.length; i++) {
+            followersSumFreq += Double.parseDouble(mc_freqs[i]);
+            this.followersRelFreqMap.put(Integer.parseInt(mc_vals[i]),
+                                         Double.parseDouble(mc_freqs[i]));
+        }
+        this.followersDefaultSelectivity = (1 - followersSumFreq) /
+            (this.followersRelNDistinct - followersRelFreqMap.size());
+    }
+
+    private void loadUsersStatsFile() throws IOException {
+        String statsFilePath = System.getProperty("user.home") + File.separator + "user_profiles_stats.txt";
+        BufferedReader tableStats;
+        try {
+            tableStats = new BufferedReader(new FileReader(statsFilePath));
+        } catch (FileNotFoundException e) {
+            LOG.info("Could not load users stats file: " + statsFilePath);
+            return;
+        }
+
+        String nextLine = tableStats.readLine();
+        String[] array = nextLine.split(",", 0);
+        this.usersRelPages = Integer.parseInt(array[0]);
+        this.usersRelTuples = Integer.parseInt(array[1]);
+        this.usersRelNDistinct = Integer.parseInt(tableStats.readLine());
     }
     
     private void loadBufStatsFile() throws IOException {
@@ -225,22 +339,31 @@ public class WorkloadState {
         }
 
         // Ignore the first 4 partition lines
-        String nextLine;
-        for (int i=0; i<4; i++) {
-            nextLine = bufferStats.readLine();
-        }
+        String nextLine = bufferStats.readLine();
+        this.followsDefaultHitProb = Double.parseDouble(nextLine);
+
+        nextLine = bufferStats.readLine();
+        this.followersDefaultHitProb = Double.parseDouble(nextLine);
+
+        nextLine = bufferStats.readLine();
+        this.tweetsUidDefaultHitProb = Double.parseDouble(nextLine);
+
+        nextLine = bufferStats.readLine();
+        this.usersDefaultHitProb = Double.parseDouble(nextLine);
+
+        // Now start the partitions of tweets by the post popular users
         nextLine = bufferStats.readLine();
         Long pred_uid = 1L;
         while (nextLine != null) {
             double hit_prob = Double.parseDouble(nextLine);
-            this.hitProbMap.put(pred_uid, hit_prob);
+            this.tweetsHitProbMap.put(pred_uid, hit_prob);
             nextLine = bufferStats.readLine();
             pred_uid++;
         }
 
         // We reached the end. We need to remove the last entry and use that as
         // default hit prob
-        this.defaultHitProb = this.hitProbMap.remove(pred_uid-1);
+        this.tweetsDefaultHitProb = this.tweetsHitProbMap.remove(pred_uid-1);
     }
 
     /**
@@ -271,6 +394,9 @@ public class WorkloadState {
                 return;
            } else {
                 if (benchmarkState.getState() != State.WARMUP) {
+                    boolean fullBufPLA = (SchedPolicy.valueOf(this.schedPolicy) ==
+                                          SchedPolicy.EDF_PRED_BUF_LOC_FULL);
+
                     // Add the specified number of procedures to the end of the queue.
                     for (int i = 0; i < amount; ++i) {
                         // Pick transaction to be run from file. It will fallback
@@ -283,7 +409,46 @@ public class WorkloadState {
                         float cost = (float) proc[2];
                         ArrayList<Long> pred = (ArrayList<Long>) proc[3];
 
-                        if (pred != null && RESULTS_QUEUE_LIMIT != 0) {
+                        if (fullBufPLA && pred == null) {
+                            // For Query type 2, we have to look at the
+                            // individual predicates to find out the reduction.
+                            // For everything else, it is quite simple
+                            double hitRate, sel, reduction = 0.0;
+                            if (type == 1) {
+                                // GetTweet: We assume that the unpopular tweets
+                                // partition is touched
+                                hitRate = this.tweetsDefaultHitProb;
+                                // Just 1 disk I/O
+                                sel = 1;
+                                reduction = (sel * tweetRelTuples * hitRate * RANDOM_PAGE_COST);
+                            } else if (type == 3) {
+                                // GetFollowers info
+                                // First, we find the followers
+                                hitRate = this.followersDefaultHitProb;
+                                sel = followersRelFreqMap.getOrDefault(num,
+                                        followersDefaultSelectivity);
+                                reduction += (Math.min(100, sel * followersRelTuples) *
+                                              hitRate * RANDOM_PAGE_COST);
+                                // Next, we fetch user profile info about those
+                                // followers
+                                hitRate = this.usersDefaultHitProb;
+                                reduction += (Math.min(100, sel * followersRelTuples) *
+                                              hitRate * RANDOM_PAGE_COST);
+                            } else if (type == 4) {
+                                // GetTweetsForUser
+                                hitRate = this.tweetsHitProbMap.getOrDefault(num,
+                                        tweetsDefaultHitProb);
+                                sel = followersRelFreqMap.getOrDefault(num,
+                                        followersDefaultSelectivity);
+                                reduction += (Math.min(10, sel * followersRelTuples) *
+                                              hitRate * RANDOM_PAGE_COST);
+                            } else if (type == 5) {
+                                // InsertTweet
+                                // No reduction in disk I/Os
+                            }
+                            cost -= reduction;
+
+                        } else if (pred != null && RESULTS_QUEUE_LIMIT != 0) {
                             // Check if we ran some query in the past with similar predicates
                             Iterator it = pred.iterator();
                             double reduction = 0.0;
@@ -300,6 +465,9 @@ public class WorkloadState {
 
                                 int count = resultsUnion.getOrDefault(predUid, 0);
                                 if (count != 0) {
+                                    double hitRate = count * 1.0 / resultsQueue.size();
+                                    double sel = tweetRelFreqMap.getOrDefault(predUid,
+                                            tweetsDefaultSelectivity);
                                     if (oldPLA) {
                                         // Reduction is roughly 599.95 per
                                         // predicate. We reduce by close to 50%
@@ -308,38 +476,26 @@ public class WorkloadState {
                                         // We start with an initial frequency
                                         // corresponding to the relative
                                         // popularity of the predicate
-                                        double freq = count * 1.0 / resultsQueue.size();
-                                        if (tweetRelFreqMap.containsKey(predUid)) {
-                                            // One of the top-hitters
-                                            freq = freq * tweetRelFreqMap.get(predUid);
-                                        } else {
-                                            // Not one of the top hitters
-                                            freq = freq * (1 - tweetRelSumFreq) /
-                                                (tweetRelNDistinct - tweetRelFreqMap.size());
-                                        }
-                                        reduction += (freq * tweetRelTuples * RANDOM_PAGE_COST);
+                                        reduction += (sel * tweetRelTuples *
+                                                      hitRate * RANDOM_PAGE_COST);
                                     }
                                 }
                             }
                             cost -= reduction;
-                        } else if (pred != null && this.hitProbMap.size() != 0) {
+                        } else if (pred != null) {
+                            // Common for both fullBufPLA and BufPLA
                             Iterator it = pred.iterator();
                             double reduction = 0.0;
                             while (it.hasNext()) {
                                 Long predUid = (Long) it.next();
-
-                                // We need to use the buffer pool hit probability
-                                // estimates
-                                double freq = hitProbMap.getOrDefault(predUid, defaultHitProb);
-                                if (tweetRelFreqMap.containsKey(predUid)) {
-                                    // One of the top-hitters
-                                    freq = freq * tweetRelFreqMap.get(predUid);
-                                } else {
-                                    // Not one of the top hitters
-                                    freq = freq * (1 - tweetRelSumFreq) /
-                                        (tweetRelNDistinct - tweetRelFreqMap.size());
-                                }
-                                reduction += (freq * tweetRelTuples * RANDOM_PAGE_COST);
+                                // We need to use the buffer pool hit
+                                // probability estimates
+                                double hitRate = tweetsHitProbMap.getOrDefault(predUid,
+                                        tweetsDefaultHitProb);
+                                double sel = tweetRelFreqMap.getOrDefault(predUid,
+                                        tweetsDefaultSelectivity);
+                                reduction += (sel * tweetRelTuples *
+                                              hitRate * RANDOM_PAGE_COST);
                             }
                             cost -= reduction;
                         }
