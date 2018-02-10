@@ -6,6 +6,9 @@ import subprocess
 import shlex
 import sys
 
+LIMIT_FOLLOWERS = 100
+LIMIT_TWEETS_FOR_UID = 10
+
 def get_plan_cost(output):
     for line in output.split("\n"):
         line = line.strip()
@@ -26,11 +29,13 @@ def get_tweet(cur, tid):
 def get_tweets_from_following(cur, uid):
     cost = 0
     cur.execute("EXPLAIN (FORMAT YAML) "
-                "SELECT f2 FROM follows WHERE f1 = %s LIMIT 20;" % uid)
+                "SELECT f2 FROM follows WHERE f1 = %s LIMIT %s;" %
+                (uid, LIMIT_FOLLOWERS)
     output = cur.fetchall()
     cost += get_plan_cost(output[0][0])
 
-    cur.execute("SELECT f2 FROM follows WHERE f1 = %s LIMIT 20;" % uid)
+    cur.execute("SELECT f2 FROM follows WHERE f1 = %s LIMIT %s;" %
+                (uid, LIMIT_FOLLOWERS))
     uids = cur.fetchall()
     uid_list = map(str, [u[0] for u in uids])
 
@@ -45,11 +50,13 @@ def get_tweets_from_following(cur, uid):
 def get_followers(cur, uid):
     cost = 0
     cur.execute("EXPLAIN (FORMAT YAML) "
-                "SELECT f2 FROM followers WHERE f1 = %s LIMIT 20;" % uid)
+                "SELECT f2 FROM followers WHERE f1 = %s LIMIT %s;" %
+                (uid, LIMIT_FOLLOWERS)
     output = cur.fetchall()
     cost += get_plan_cost(output[0][0])
 
-    cur.execute("SELECT f2 FROM followers WHERE f1 = %s LIMIT 20;" % uid)
+    cur.execute("SELECT f2 FROM followers WHERE f1 = %s LIMIT %s;" %
+                (uid, LIMIT_FOLLOWERS))
     uids = cur.fetchall()
     uid_list = map(str, [u[0] for u in uids])
     
@@ -64,7 +71,8 @@ def get_followers(cur, uid):
 
 def get_user_tweets(cur, uid):
     cur.execute("EXPLAIN (FORMAT YAML) "
-                "SELECT * FROM tweets WHERE uid = %s LIMIT 10;" % uid)
+                "SELECT * FROM tweets WHERE uid = %s LIMIT %s;" %
+                (uid, LIMIT_TWEETS_FOR_UID))
     output = cur.fetchall()
 
     return get_plan_cost(output[0][0])
@@ -72,7 +80,8 @@ def get_user_tweets(cur, uid):
 def insert_tweet(cur, uid):
     start_time = monotonic_time()
 
-    cur.execute("SELECT * FROM tweets WHERE uid = %s LIMIT 10;" % uid)
+    cur.execute("SELECT * FROM tweets WHERE uid = %s LIMIT %s;" %
+                (uid, LIMIT_TWEETS_FOR_UID))
     cur.fetchall()
 
     end_time = monotonic_time()
