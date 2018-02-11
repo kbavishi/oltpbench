@@ -155,7 +155,7 @@ if __name__ == '__main__':
                         help='Username to login to Postgres')
     parser.add_argument('password', metavar='PASSWORD', type=str,
                         help='Password to login to Postgres')
-    parser.add_argument('--partitions', type=int, default=50,
+    parser.add_argument('--partitions', type=int, default=100,
                         help='Number of popular partitions')
     parser.add_argument('--memory', type=int, default=768,
                         help='Buffer pool memory in MB')
