@@ -74,64 +74,51 @@ def run_twitter_benchmark(sched_policy, output_file, csv_file, iterations=11,
 
         open("%s.%s.txt" % (output_file, i), "w").write(output)
 
-def main(arrival_rate, iterations, alpha, gedf_factor, fixed_deadline):
+def main(arrival_rate, iterations, alpha, gedf_factor, fixed_deadline,
+         random_page_cost):
     print "CURRENTLY TESTING: %s, %s, %s" % (arrival_rate, alpha, gedf_factor)
     run_twitter_benchmark("fifo", "output/fifo", "fifo",
                           iterations=iterations,
                           arrival_rate=arrival_rate, alpha=alpha,
                           gedf_factor=gedf_factor,
-                          fixed_deadline=fixed_deadline)
+                          fixed_deadline=fixed_deadline,
+                          random_page_cost=random_page_cost)
     run_twitter_benchmark("edf", "output/edf", "edf",
                           iterations=iterations,
                           arrival_rate=arrival_rate, alpha=alpha,
                           gedf_factor=gedf_factor,
-                          fixed_deadline=fixed_deadline)
-
-    # PLA EDF tests with different history sizes
-    run_twitter_benchmark("edf_pred_loc", "output/edf_loc_10", "edf_loc_10",
-                          pred_history=10, iterations=iterations,
-                          arrival_rate=arrival_rate, alpha=alpha,
-                          gedf_factor=gedf_factor,
-                          fixed_deadline=fixed_deadline)
-    run_twitter_benchmark("edf_pred_loc", "output/edf_loc_100", "edf_loc_100",
-                          pred_history=100, iterations=iterations,
-                          arrival_rate=arrival_rate, alpha=alpha,
-                          gedf_factor=gedf_factor,
-                          fixed_deadline=fixed_deadline)
-    run_twitter_benchmark("edf_pred_loc", "output/edf_loc_1000", "edf_loc_1000",
-                          pred_history=1000, iterations=iterations,
-                          arrival_rate=arrival_rate, alpha=alpha,
-                          gedf_factor=gedf_factor,
-                          fixed_deadline=fixed_deadline)
-
-    # PLA gEDF tests with different history sizes
-    run_twitter_benchmark("gedf_pred_loc", "output/gedf_loc_10", "gedf_loc_10",
-                          pred_history=10, iterations=iterations,
-                          arrival_rate=arrival_rate, alpha=alpha,
-                          gedf_factor=gedf_factor,
-                          fixed_deadline=fixed_deadline)
-    run_twitter_benchmark("gedf_pred_loc", "output/gedf_loc_100", "gedf_loc_100",
-                          pred_history=100, iterations=iterations,
-                          arrival_rate=arrival_rate, alpha=alpha,
-                          gedf_factor=gedf_factor,
-                          fixed_deadline=fixed_deadline)
-    run_twitter_benchmark("gedf_pred_loc", "output/gedf_loc_1000", "gedf_loc_1000",
-                          pred_history=1000, iterations=iterations,
-                          arrival_rate=arrival_rate, alpha=alpha,
-                          gedf_factor=gedf_factor,
-                          fixed_deadline=fixed_deadline)
+                          fixed_deadline=fixed_deadline,
+                          random_page_cost=random_page_cost)
 
     # PLA Buf-Loc EDF and gEDF
     run_twitter_benchmark("edf_pred_buf_loc", "output/edf_pred_buf_loc",
                           "edf_pred_buf_loc", iterations=iterations,
                           arrival_rate=arrival_rate,
                           alpha=alpha, gedf_factor=gedf_factor,
-                          fixed_deadline=fixed_deadline)
+                          fixed_deadline=fixed_deadline,
+                          random_page_cost=random_page_cost)
     run_twitter_benchmark("gedf_pred_buf_loc", "output/gedf_pred_buf_loc",
                           "gedf_pred_buf_loc", iterations=iterations,
                           arrival_rate=arrival_rate,
                           alpha=alpha, gedf_factor=gedf_factor,
-                          fixed_deadline=fixed_deadline)
+                          fixed_deadline=fixed_deadline,
+                          random_page_cost=random_page_cost)
+
+    # FULL PLA Buf-Loc EDF and gEDF
+    run_twitter_benchmark("edf_pred_buf_loc_full", "output/edf_pred_buf_loc_full",
+                          "edf_pred_buf_loc_full", iterations=iterations,
+                          arrival_rate=arrival_rate,
+                          alpha=alpha, gedf_factor=gedf_factor,
+                          fixed_deadline=fixed_deadline,
+                          random_page_cost=random_page_cost)
+
+    run_twitter_benchmark("gedf_pred_buf_loc_full",
+                          "output/gedf_pred_buf_loc_full",
+                          "gedf_pred_buf_loc_full", iterations=iterations,
+                          arrival_rate=arrival_rate,
+                          alpha=alpha, gedf_factor=gedf_factor,
+                          fixed_deadline=fixed_deadline,
+                          random_page_cost=random_page_cost)
 
 if __name__ == '__main__':
     # Create necessary directories
@@ -166,8 +153,12 @@ if __name__ == '__main__':
     assert 0.0 <= alpha <= 1.0, "Incorrect alpha value: %s" % alpha
     gedf_factor = float(args.gedf_factor)
     assert 0.0 <= gedf_factor <= 1.0, "Incorrect gedf value: %s" % gedf_factor
+    random_page_cost = float(args.random_page_cost)
+    assert random_page_cost >= 0.0 , "Incorrect random page cost value: %s" %
+    random_page_cost
 
-    main(args.rate, args.iter, alpha, gedf_factor, args.fixed_deadline)
+    main(args.rate, args.iter, alpha, gedf_factor, args.fixed_deadline,
+         random_page_cost)
 
     # Rename output and results directory for backups
     deadline = "nfd" if args.fixed_deadline == "false" else "fd"
