@@ -30,7 +30,7 @@ def get_tweets_from_following(cur, uid):
     cost = 0
     cur.execute("EXPLAIN (FORMAT YAML) "
                 "SELECT f2 FROM follows WHERE f1 = %s LIMIT %s;" %
-                (uid, LIMIT_FOLLOWERS)
+                (uid, LIMIT_FOLLOWERS))
     output = cur.fetchall()
     cost += get_plan_cost(output[0][0])
 
@@ -51,7 +51,7 @@ def get_followers(cur, uid):
     cost = 0
     cur.execute("EXPLAIN (FORMAT YAML) "
                 "SELECT f2 FROM followers WHERE f1 = %s LIMIT %s;" %
-                (uid, LIMIT_FOLLOWERS)
+                (uid, LIMIT_FOLLOWERS))
     output = cur.fetchall()
     cost += get_plan_cost(output[0][0])
 
