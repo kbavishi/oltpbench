@@ -154,8 +154,8 @@ if __name__ == '__main__':
     gedf_factor = float(args.gedf_factor)
     assert 0.0 <= gedf_factor <= 1.0, "Incorrect gedf value: %s" % gedf_factor
     random_page_cost = float(args.random_page_cost)
-    assert random_page_cost >= 0.0 , "Incorrect random page cost value: %s" %
-    random_page_cost
+    assert random_page_cost >= 0.0 , \
+        "Incorrect random page cost value: %s" % random_page_cost
 
     main(args.rate, args.iter, alpha, gedf_factor, args.fixed_deadline,
          random_page_cost)
