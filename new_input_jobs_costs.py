@@ -182,6 +182,8 @@ if __name__ == '__main__':
     conn = psycopg2.connect(dbname="twitter", host=sys.argv[1],
                             user=sys.argv[2], password=sys.argv[3])
     cur = conn.cursor()
+    cur.execute("CREATE EXTENSION pgstattuple")
+    cur.execute("ANALYZE")
     create_table_stats_file(cur, "tweets", "uid", "idx_tweets_uid")
     create_table_stats_file(cur, "follows", "f1", "follows_pkey")
     create_table_stats_file(cur, "followers", "f1", "followers_pkey")
