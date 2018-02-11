@@ -47,7 +47,6 @@ import org.apache.log4j.Logger;
 public class WorkloadState {
     private static final int RATE_QUEUE_LIMIT = 10000;
     // Choose a random page cost slightly lower than the Postgres value
-    private static final float RANDOM_PAGE_COST = (float) 18.5;
 
     private static final Logger LOG = Logger.getLogger(ThreadBench.class);
     
@@ -69,6 +68,7 @@ public class WorkloadState {
 
     private int schedPolicy;
     private int RESULTS_QUEUE_LIMIT;
+    private double RANDOM_PAGE_COST = 4.0;
     private Queue<SubmittedProcedure> workQueue;
     private HashMap<Integer, Double> costSlope = new HashMap<Integer, Double>();
     private double alpha = 0.5;
@@ -106,7 +106,8 @@ public class WorkloadState {
 
     public WorkloadState(BenchmarkState benchmarkState, List<Phase> works, int num_terminals,
             int schedPolicy, double alpha, double gedfFactor, int predResultsHistory,
-            boolean fixedDeadline, long defaultDeadlineNs, TraceReader traceReader) {
+            double randomPageCost, boolean fixedDeadline,
+            long defaultDeadlineNs, TraceReader traceReader) {
         this.benchmarkState = benchmarkState;
         this.works = works;
         this.num_terminals = num_terminals;
@@ -115,6 +116,7 @@ public class WorkloadState {
         this.alpha = alpha;
         this.gedfFactor = gedfFactor;
         this.RESULTS_QUEUE_LIMIT = predResultsHistory;
+        this.RANDOM_PAGE_COST = randomPageCost;
         this.fixedDeadline = fixedDeadline;
         this.defaultDeadlineNs = defaultDeadlineNs;
         this.traceReader = traceReader;

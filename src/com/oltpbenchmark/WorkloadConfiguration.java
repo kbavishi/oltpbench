@@ -51,6 +51,7 @@ public class WorkloadConfiguration {
     private int schedPolicy;
     private double alpha = 0.5;
     private double gedfFactor = 0.4;
+    private double randomPageCost = 4.0;
     private boolean fixedDeadline = false;
     private long defaultDeadlineNs = 500000000;
     private int predResultsHistory = 5;
@@ -84,8 +85,8 @@ public class WorkloadConfiguration {
         workloadState = new WorkloadState(benchmarkState, works, terminals,
                                           this.schedPolicy, this.alpha,
                                           this.gedfFactor, this.predResultsHistory,
-                                          this.fixedDeadline, this.defaultDeadlineNs,
-                                          traceReader);
+                                          this.randomPageCost, this.fixedDeadline,
+                                          this.defaultDeadlineNs, traceReader);
         return workloadState;
     }
 
@@ -214,6 +215,14 @@ public class WorkloadConfiguration {
 		return this.gedfFactor;
 	}
 	
+	public void setRandomPageCost(double cost) {
+		this.randomPageCost = cost;
+	}
+	
+	public double getRandomPageCost() {
+		return this.randomPageCost;
+	}
+
 	public void setFixedDeadline(boolean fixedDeadline) {
 		this.fixedDeadline = fixedDeadline;
 	}

@@ -219,6 +219,7 @@ public class DBWorkload {
             wrkld.setGedfFactor(xmlConfig.getDouble("gedf_factor", 0.4));
             wrkld.setFixedDeadline(xmlConfig.getBoolean("fixed_deadline", false));
             wrkld.setDefaultDeadlineNs(xmlConfig.getLong("default_deadline_ns", 500000000));
+            wrkld.setRandomPageCost(xmlConfig.getDouble("random_page_cost", 4.0));
             
             int terminals = xmlConfig.getInt("terminals[not(@bench)]", 0);
             terminals = xmlConfig.getInt("terminals" + pluginTest, terminals);
@@ -269,6 +270,7 @@ public class DBWorkload {
             initDebug.put("gEDF Factor", wrkld.getGedfFactor());
             initDebug.put("Fixed Deadline", wrkld.getFixedDeadline());
             initDebug.put("Default Deadline (ns)", wrkld.getDefaultDeadlineNs());
+            initDebug.put("Random page cost", wrkld.getRandomPageCost());
             
             if(selectivity != -1)
                 initDebug.put("Selectivity", selectivity);

@@ -23,7 +23,7 @@ def run_bash_cmd(cmd):
         return subprocess.check_output(shlex.split(cmd))
 
 def restart_postgres():
-    run_bash_cmd("ssh -p 8022 -i /home/karan/.keys/vm_key "
+    run_bash_cmd("ssh -p 8022 -i /users/kbavishi/.vagrant/machines/default/virtualbox/private_key "
                  "%s ./oltpbench/reset_postgres.sh" % POSTGRES_HOST)
 
 def build_branch(branch_name):
@@ -36,7 +36,7 @@ def trim_first_line(csv_file):
 
 def generate_twitter_config(sched_policy, pred_history, arrival_rate=75,
                             alpha=0.5, gedf_factor=0.4, timeout=300,
-                            fixed_deadline="false"):
+                            fixed_deadline="false", random_page_cost=4.0):
     os.environ["POSTGRES_IP"] = POSTGRES_IP
     os.environ["SCHED_POLICY"] = sched_policy
     os.environ["PRED_HISTORY"] = str(pred_history)
@@ -45,13 +45,15 @@ def generate_twitter_config(sched_policy, pred_history, arrival_rate=75,
     os.environ["GEDF_FACTOR"] = "%.2f" % gedf_factor
     os.environ["TIMEOUT"] = str(timeout)
     os.environ["FIXED_DEADLINE"] = fixed_deadline
+    os.environ["RANDOM_PAGE_COST"] = "%.2f" % random_page_cost
 
     run_bash_cmd("j2 config/twitter_config.xml.j2 | "
                  "tee config/twitter_config.xml")
 
 def run_twitter_benchmark(sched_policy, output_file, csv_file, iterations=11,
                           pred_history=0, arrival_rate=75, alpha=0.5,
-                          gedf_factor=0.4, fixed_deadline="false"):
+                          gedf_factor=0.4, fixed_deadline="false",
+                          random_page_cost=4.0):
     generate_twitter_config(sched_policy, pred_history,
                             arrival_rate=arrival_rate, alpha=alpha,
                             gedf_factor=gedf_factor,
@@ -146,6 +148,8 @@ if __name__ == '__main__':
                         help='Smoothing factor for EWMA')
     parser.add_argument('--gedf_factor', type=str, default='0.4',
                         help='gEDF factor for deadline grouping')
+    parser.add_argument('--random_page_cost', type=str, default='4.0',
+                        help='Random I/O cost for Postgres')
     parser.add_argument('--iter', type=int, default=11,
                         help='Number of times to repeat experiment')
     parser.add_argument('--fixed_deadline', type=str, default="false",
@@ -166,7 +170,9 @@ if __name__ == '__main__':
     main(args.rate, args.iter, alpha, gedf_factor, args.fixed_deadline)
 
     # Rename output and results directory for backups
-    parent_dir = "new_pred_data/ph_%s_alpha_%s_gedf_%s" % (args.rate, alpha,
-                                                           gedf_factor)
+    deadline = "nfd" if args.fixed_deadline == "false" else "fd"
+    parent_dir = "new_pred_data/ph_%s_alpha_%s_gedf_%s_%s" % (args.rate, alpha,
+                                                              gedf_factor,
+                                                              deadline)
     os.renames("output", "%s/output" % parent_dir)
     os.renames("results", "%s/results" % parent_dir)
