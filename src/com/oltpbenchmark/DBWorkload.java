@@ -210,7 +210,7 @@ public class DBWorkload {
             wrkld.setDBUsername(xmlConfig.getString("username"));
             wrkld.setDBPassword(xmlConfig.getString("password"));
 
-            SchedPolicy pol = SchedPolicy.convertFromString(xmlConfig.getString("policy").toUpperCase());
+            SchedPolicy pol = SchedPolicy.convertFromString(xmlConfig.getString("policy", "fifo").toUpperCase());
             assert(pol != null);
             wrkld.setSchedPolicy(pol.getPolicyAsInt());
 
