@@ -330,8 +330,11 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
                     // after the timer went off.
                     if (preState == State.MEASURE && type != null && 
                             this.wrkldState.getCurrentPhase().id == phase.id) {
-                        latencies.addLatency(type.getId(), pieceOfWork.getCost(), start, execStart,
-                                             end, pieceOfWork.getExecTime(), this.id, phase.id);
+                        latencies.addLatency(type.getId(), pieceOfWork.getCost(),
+                                             start, execStart, end,
+                                             pieceOfWork.getExecTime(),
+                                             pieceOfWork.getDeadlineTime(),
+                                             this.id, phase.id);
                         this.wrkldState.updateCostEWMA(type.getId(), end - execStart,
                                                        pieceOfWork.getCost());
                         intervalRequests.incrementAndGet();
