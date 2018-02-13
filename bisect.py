@@ -21,7 +21,7 @@ rp_vals, sp_vals = [], []
 q1, q2, q3, q4, q5 = 0.0025, 0.91, 0.0025, 0.075, 0.01
 
 def get_num_follows_rows(cur, uid):
-    cur.execute("SELECT COUNT(*) FROM follows WHERE f2 = %s;" % uid)
+    cur.execute("SELECT COUNT(*) FROM followers WHERE f1 = %s;" % uid)
     output = cur.fetchall()
     return int(output[0][0])
 
@@ -55,7 +55,7 @@ def get_partition_access_probs(cur, num_partitions):
         all_probs += [(q2+q4) * num * 1.0/total_user_count]
 
     # Last: Unpopular tweets
-    cur.execute("SELECT COUNT(DISTINCT(f1)) FROM follows WHERE f2 NOT IN (%s);" % 
+    cur.execute("SELECT COUNT(DISTINCT(f1)) FROM followers WHERE f1 NOT IN (%s);" % 
                 ",".join(map(str, xrange(1, num_partitions))))
     other_user_count = int(cur.fetchall()[0][0])
 
