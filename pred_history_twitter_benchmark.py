@@ -57,7 +57,8 @@ def run_twitter_benchmark(sched_policy, output_file, csv_file, iterations=11,
     generate_twitter_config(sched_policy, pred_history,
                             arrival_rate=arrival_rate, alpha=alpha,
                             gedf_factor=gedf_factor,
-                            fixed_deadline=fixed_deadline)
+                            fixed_deadline=fixed_deadline,
+                            random_page_cost=random_page_cost)
 
     for i in xrange(iterations):
         # Always restart Postgres after each run
