@@ -66,11 +66,10 @@ public class LatencyRecord implements Iterable<LatencyRecord.Sample> {
 		assert execLatencyUs >= 0;
 
         int expExecLatencyUs = (int) (expExecNs / 1000);
-		long deadlineOffsetNs = (deadlineNs - lastNs + 500);
-		assert deadlineOffsetNs >= 0;
+		int deadlineUs = (int) ((deadlineNs - startNs + 500) / 1000);
 
 		chunk[nextIndex] = new Sample(transType, cost, startOffsetNs, latencyUs,
-				execLatencyUs, expExecLatencyUs, deadlineOffsetNs, workerId, phaseId);
+				execLatencyUs, expExecLatencyUs, deadlineUs, workerId, phaseId);
 		++nextIndex;
 
 		lastNs += startOffsetNs;
@@ -101,19 +100,19 @@ public class LatencyRecord implements Iterable<LatencyRecord.Sample> {
 		public final int latencyUs;
 		public final int execLatencyUs;
         public final int expExecLatencyUs;
-        public final long deadlineNs;
+        public final int deadlineUs;
 		public final int workerId;
 		public final int phaseId;
 
         public Sample(int tranType, double cost, long startNs, int latencyUs,
-		int execLatencyUs, int expExecLatencyUs, long deadlineNs, int workerId, int phaseId) {
+		int execLatencyUs, int expExecLatencyUs, int deadlineUs, int workerId, int phaseId) {
 			this.tranType = tranType;
 			this.cost = cost;
 			this.startNs = startNs;
 			this.latencyUs = latencyUs;
 			this.execLatencyUs = execLatencyUs;
             this.expExecLatencyUs = expExecLatencyUs;
-            this.deadlineNs = deadlineNs;
+            this.deadlineUs = deadlineUs;
 			this.workerId = workerId;
 			this.phaseId = phaseId;
 		}

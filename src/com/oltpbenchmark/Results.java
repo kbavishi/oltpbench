@@ -178,7 +178,6 @@ public final class Results {
         out.println(StringUtil.join(",", header));
         for (Sample s : latencySamples) {
             double startUs = ((double) s.startNs / (double) 1000000000);
-            double deadlineUs = ((double) s.deadlineNs / (double) 1000000000);
             String row[] = {
                 Integer.toString(s.tranType),
                 // Important!
@@ -189,7 +188,7 @@ public final class Results {
                 Integer.toString(s.execLatencyUs),
                 String.format("%.2f", s.cost),
                 Integer.toString(s.expExecLatencyUs),
-                String.format("%10.6f", deadlineUs - offset),
+                Integer.toString(s.deadlineUs),
                 Integer.toString(s.workerId),
                 Integer.toString(s.phaseId),
             };
