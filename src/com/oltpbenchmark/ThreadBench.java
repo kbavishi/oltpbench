@@ -489,11 +489,13 @@ public class ThreadBench implements Thread.UncaughtExceptionHandler {
         try {
             int requests = finalizeWorkers(this.workerThreads);
 
-	    // Get dropped transactions count
-	    int droppedTransactions = 0;
+            // Get dropped transactions count
+            int droppedTransactions = 0;
+            long droppedTransactionUsecs = 0;
             for (WorkloadState workState : this.workStates) {
-		droppedTransactions += workState.getDroppedTransactions();
-	    }
+                droppedTransactions += workState.getDroppedTransactions();
+                droppedTransactionUsecs += workState.getDroppedTransactionUsecs();
+            }
 
             // Combine all the latencies together in the most disgusting way
             // possible: sorting!
@@ -511,8 +513,9 @@ public class ThreadBench implements Thread.UncaughtExceptionHandler {
             }
             DistributionStatistics stats = DistributionStatistics.computeStatistics(latencies);
 
-            Results results = new Results(measureEnd - start, requests, droppedTransactions,
-			    		  stats, samples);
+            Results results = new Results(measureEnd - start, requests,
+                                          droppedTransactions, droppedTransactionUsecs,
+                                          stats, samples);
 
             // Compute transaction histogram
             Set<TransactionType> txnTypes = new HashSet<TransactionType>();

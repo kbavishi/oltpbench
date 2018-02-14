@@ -56,6 +56,7 @@ public class WorkloadState {
     private int num_terminals;
     private int workerNeedSleep;
     private int droppedTransactions = 0;
+    private long droppedTransactionUsecs = 0;
     
     private List<Phase> works = new ArrayList<Phase>();
     private Iterator<Phase> phaseIterator;
@@ -638,6 +639,7 @@ public class WorkloadState {
                         // Can not complete this transaction. Just drop it
                         workQueue.poll();
                         droppedTransactions++;
+                        droppedTransactionUsecs += ((currentTime - proc.getStartTime()) / 1000);
                     } else {
                         break;
                     }
@@ -686,6 +688,10 @@ public class WorkloadState {
 
     public int getDroppedTransactions() {
         return droppedTransactions;
+    }
+
+    public long getDroppedTransactionUsecs() {
+        return droppedTransactionUsecs;
     }
 
     public void finishedWork() {
