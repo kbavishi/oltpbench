@@ -426,7 +426,7 @@ public class WorkloadState {
                                 hitRate = this.tweetsDefaultHitProb;
                                 // Just 1 disk I/O
                                 sel = 1;
-                                reduction = (sel * tweetRelTuples * hitRate * RANDOM_PAGE_COST);
+                                reduction = (sel * 1 * hitRate * RANDOM_PAGE_COST);
                             } else if (type == 3) {
                                 // GetFollowers info
                                 // First, we find the followers

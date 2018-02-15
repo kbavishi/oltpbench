@@ -171,6 +171,7 @@ public final class Results {
         String header[] = {
             "Transaction Type Index",
             "Transaction Name",
+            "Transaction Arg",
             "Start Time (microseconds)",
             "Latency (microseconds)",
             "Exec Latency (microseconds)",
@@ -188,6 +189,7 @@ public final class Results {
                 // Important!
                 // The TxnType offsets start at 1!
                 activeTXTypes.get(s.tranType-1).getName(),
+                Integer.toString(s.num),
                 String.format("%10.6f", startUs - offset),
                 Integer.toString(s.latencyUs),
                 Integer.toString(s.execLatencyUs),

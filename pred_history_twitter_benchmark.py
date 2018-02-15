@@ -84,26 +84,21 @@ def main(arrival_rate, iterations, alpha, gedf_factor, fixed_deadline,
                           gedf_factor=gedf_factor,
                           fixed_deadline=fixed_deadline,
                           random_page_cost=random_page_cost)
+
+    # EDF and gEDF
     run_twitter_benchmark("edf", "output/edf", "edf",
                           iterations=iterations,
                           arrival_rate=arrival_rate, alpha=alpha,
                           gedf_factor=gedf_factor,
                           fixed_deadline=fixed_deadline,
                           random_page_cost=random_page_cost)
+    run_twitter_benchmark("gedf", "output/gedf", "gedf",
+                          iterations=iterations,
+                          arrival_rate=arrival_rate, alpha=alpha,
+                          gedf_factor=gedf_factor,
+                          fixed_deadline=fixed_deadline,
+                          random_page_cost=random_page_cost)
 
-    # PLA Buf-Loc EDF and gEDF
-    run_twitter_benchmark("edf_pred_buf_loc", "output/edf_pred_buf_loc",
-                          "edf_pred_buf_loc", iterations=iterations,
-                          arrival_rate=arrival_rate,
-                          alpha=alpha, gedf_factor=gedf_factor,
-                          fixed_deadline=fixed_deadline,
-                          random_page_cost=random_page_cost)
-    run_twitter_benchmark("gedf_pred_buf_loc", "output/gedf_pred_buf_loc",
-                          "gedf_pred_buf_loc", iterations=iterations,
-                          arrival_rate=arrival_rate,
-                          alpha=alpha, gedf_factor=gedf_factor,
-                          fixed_deadline=fixed_deadline,
-                          random_page_cost=random_page_cost)
 
     # FULL PLA Buf-Loc EDF and gEDF
     run_twitter_benchmark("edf_pred_buf_loc_full", "output/edf_pred_buf_loc_full",
