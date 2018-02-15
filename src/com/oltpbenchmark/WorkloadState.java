@@ -452,6 +452,9 @@ public class WorkloadState {
                                 // InsertTweet
                                 // No reduction in disk I/Os
                             }
+                            if (reduction > cost) {
+                                LOG.info("KB Malfunction: " + type + ", " + num + ", " + cost + ", " + reduction);
+                            }
                             cost -= reduction;
 
                         } else if (pred != null && RESULTS_QUEUE_LIMIT != 0) {
@@ -487,6 +490,9 @@ public class WorkloadState {
                                     }
                                 }
                             }
+                            if (reduction > cost) {
+                                LOG.info("KB Malfunction: " + type + ", " + num + ", " + cost + ", " + reduction);
+                            }
                             cost -= reduction;
                         } else if (pred != null) {
                             // Common for both fullBufPLA and BufPLA
@@ -513,6 +519,9 @@ public class WorkloadState {
                                 reduction += (Math.min(100, sel * followsRelTuples) *
                                               hitRate * RANDOM_PAGE_COST);
                             }
+                            if (reduction > cost) {
+                                LOG.info("KB Malfunction: " + type + ", " + num + ", " + cost + ", " + reduction);
+                            }
                             cost -= reduction;
                         }
 
@@ -525,6 +534,10 @@ public class WorkloadState {
                         } else {
                             // Pick deadline based on estimated execution time
                             deadlineTime = startTime + 10 * execTime;
+                        }
+                        if (deadlineTime < startTime) {
+                            LOG.info("KB Malfunction: " + type + ", " + num + ", " + cost + ", " +
+                                     costSlope.getOrDefault(type, 25000.0) + ", " + execTime);
                         }
 
                         workQueue.add(new SubmittedProcedure(type, startTime,
