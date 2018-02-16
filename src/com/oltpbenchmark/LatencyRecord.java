@@ -59,14 +59,14 @@ public class LatencyRecord implements Iterable<LatencyRecord.Sample> {
 
 		long startOffsetNs = (startNs - lastNs + 500);
 		assert startOffsetNs >= 0;
-		int latencyUs = (int) ((endNs - startNs + 500) / 1000);
+		long latencyUs = ((endNs - startNs + 500) / 1000);
 		assert latencyUs >= 0;
 
-		int execLatencyUs = (int) ((endNs - execStartNs + 500) / 1000);
+		long execLatencyUs = ((endNs - execStartNs + 500) / 1000);
 		assert execLatencyUs >= 0;
 
-        int expExecLatencyUs = (int) (expExecNs / 1000);
-		int deadlineUs = (int) ((deadlineNs - startNs + 500) / 1000);
+        long expExecLatencyUs = (expExecNs / 1000);
+		long deadlineUs = ((deadlineNs - startNs + 500) / 1000);
 
 		chunk[nextIndex] = new Sample(transType, num, cost, startOffsetNs, latencyUs,
 				execLatencyUs, expExecLatencyUs, deadlineUs, workerId, phaseId);
@@ -98,15 +98,15 @@ public class LatencyRecord implements Iterable<LatencyRecord.Sample> {
         public final int num;
 		public final double cost;
 		public long startNs;
-		public final int latencyUs;
-		public final int execLatencyUs;
-        public final int expExecLatencyUs;
-        public final int deadlineUs;
+		public final long latencyUs;
+		public final long execLatencyUs;
+        public final long expExecLatencyUs;
+        public final long deadlineUs;
 		public final int workerId;
 		public final int phaseId;
 
-        public Sample(int tranType, int num, double cost, long startNs, int latencyUs,
-		int execLatencyUs, int expExecLatencyUs, int deadlineUs, int workerId, int phaseId) {
+        public Sample(int tranType, int num, double cost, long startNs, long latencyUs,
+		long execLatencyUs, long expExecLatencyUs, long deadlineUs, int workerId, int phaseId) {
 			this.tranType = tranType;
             this.num = num;
 			this.cost = cost;
