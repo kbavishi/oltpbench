@@ -202,7 +202,7 @@ public class Phase {
             }
         }
         int transType = this.chooseTransaction();
-        return new Object[] {transType, -1, (float)0.0, null};
+        return new Object[] {transType, -1, (double)0.0, null};
     }
 
     public int chooseTransaction(boolean isColdQuery) {
