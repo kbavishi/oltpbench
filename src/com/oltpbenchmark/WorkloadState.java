@@ -31,11 +31,23 @@ import java.util.ListIterator;
 import java.util.LinkedList;
 import java.util.PriorityQueue;
 import java.util.Queue;
+import java.util.TreeSet;
+import java.util.NoSuchElementException;
 
 import com.oltpbenchmark.types.SchedPolicy;
 import com.oltpbenchmark.types.State;
 import com.oltpbenchmark.util.QueueLimitException;
 import org.apache.log4j.Logger;
+
+class PredScore {
+    public int counter;
+    public long element;
+
+    public PredScore(int counter, long element) {
+        this.counter = counter;
+        this.element = element;
+    }
+}
 
 /**
  * This class is used to share a state among the workers of a single
@@ -99,16 +111,26 @@ public class WorkloadState {
     private HashMap<Integer, Double> followersRelFreqMap = new HashMap<Integer, Double>();
     private double followersDefaultHitProb;
 
+    private int tweetsUidRelPages;
     private double tweetsUidDefaultHitProb;
 
     private int usersRelPages;
     private int usersRelTuples;
     private double usersDefaultHitProb;
 
+    private TreeSet<PredScore> bins;
+    private int NUM_BINS = 200;
+    private HashMap<Long, PredScore> binMap = new HashMap<Long, PredScore>();
+    private int BUFFER_SIZE = 750 * 1024 * 1024;
+    private int Lp = 5;
+    private int BIN_WINDOW_THRESHOLD = 7500;
+    private int binWindowSize = 0;
+
     public WorkloadState(BenchmarkState benchmarkState, List<Phase> works, int num_terminals,
             int schedPolicy, double alpha, double gedfFactor, int predResultsHistory,
             double randomPageCost, boolean fixedDeadline,
-            long defaultDeadlineNs, TraceReader traceReader) {
+            long defaultDeadlineNs, int numBins, int bufferSize, int binWindowThreshold,
+            TraceReader traceReader) {
         this.benchmarkState = benchmarkState;
         this.works = works;
         this.num_terminals = num_terminals;
@@ -116,10 +138,16 @@ public class WorkloadState {
         this.schedPolicy = schedPolicy;
         this.alpha = alpha;
         this.gedfFactor = gedfFactor;
+
         this.RESULTS_QUEUE_LIMIT = predResultsHistory;
         this.RANDOM_PAGE_COST = randomPageCost;
         this.fixedDeadline = fixedDeadline;
         this.defaultDeadlineNs = defaultDeadlineNs;
+
+        this.NUM_BINS = numBins;
+        this.BUFFER_SIZE = bufferSize;
+        this.BIN_WINDOW_THRESHOLD = binWindowThreshold;
+
         this.traceReader = traceReader;
         
         phaseIterator = works.iterator();
@@ -149,7 +177,22 @@ public class WorkloadState {
                     loadFollowsStatsFile();
                     loadFollowersStatsFile();
                     loadUsersStatsFile();
+                    loadTweetsUidStatsFile();
                     loadBufStatsFile();
+                } catch (IOException e) {
+                    LOG.info("Unable to load table / buffer stats file");
+                }
+                break;
+            case EDF_PRED_DYNAMIC:
+            case GEDF_PRED_DYNAMIC:
+                try {
+                    loadTweetsStatsFile();
+                    loadFollowsStatsFile();
+                    loadFollowersStatsFile();
+                    loadUsersStatsFile();
+                    loadTweetsUidStatsFile();
+                    loadBufStatsFile();
+                    resetMisraGries();
                 } catch (IOException e) {
                     LOG.info("Unable to load table / buffer stats file");
                 }
@@ -200,6 +243,14 @@ public class WorkloadState {
         }
     };
 
+    // EDF Comparator anonymous class implementation
+    public static Comparator<PredScore> binComp = new Comparator<PredScore>(){
+        @Override
+        public int compare(PredScore p1, PredScore p2) {
+            return Integer.compare(p1.counter, p2.counter);
+        }
+    };
+
     private void createWorkQueue() {
         switch (SchedPolicy.valueOf(this.schedPolicy)) {
             case FIFO:
@@ -210,6 +261,7 @@ public class WorkloadState {
             case EDF_PRED_LOC_OLD:
             case EDF_PRED_BUF_LOC:
             case EDF_PRED_BUF_LOC_FULL:
+            case EDF_PRED_DYNAMIC:
                 workQueue = new PriorityQueue<SubmittedProcedure>(100, edfComp);
                 break;
             case GEDF:
@@ -217,6 +269,7 @@ public class WorkloadState {
             case GEDF_PRED_LOC_OLD:
             case GEDF_PRED_BUF_LOC:
             case GEDF_PRED_BUF_LOC_FULL:
+            case GEDF_PRED_DYNAMIC:
                 workQueue = new PriorityQueue<SubmittedProcedure>(100, gedfComp);
                 break;
 
@@ -332,6 +385,21 @@ public class WorkloadState {
         this.usersRelTuples = Integer.parseInt(array[1]);
     }
     
+    private void loadTweetsUidStatsFile() throws IOException {
+        String statsFilePath = System.getProperty("user.home") + File.separator + "idx_tweets_uid_stats.txt";
+        BufferedReader tableStats;
+        try {
+            tableStats = new BufferedReader(new FileReader(statsFilePath));
+        } catch (FileNotFoundException e) {
+            LOG.info("Could not load followers stats file: " + statsFilePath);
+            return;
+        }
+
+        String nextLine = tableStats.readLine();
+        String[] array = nextLine.split(",", 0);
+        this.tweetsUidRelPages = Integer.parseInt(array[0]);
+    }
+
     private void loadBufStatsFile() throws IOException {
         String statsFilePath = System.getProperty("user.home") + File.separator + "buffer_stats.txt";
         BufferedReader bufferStats;
@@ -342,7 +410,7 @@ public class WorkloadState {
             return;
         }
 
-        // Ignore the first 4 partition lines
+        // Fetch probabilities for first table partitions
         String nextLine = bufferStats.readLine();
         this.followsDefaultHitProb = Double.parseDouble(nextLine);
 
@@ -350,10 +418,10 @@ public class WorkloadState {
         this.followersDefaultHitProb = Double.parseDouble(nextLine);
 
         nextLine = bufferStats.readLine();
-        this.tweetsUidDefaultHitProb = Double.parseDouble(nextLine);
+        this.usersDefaultHitProb = Double.parseDouble(nextLine);
 
         nextLine = bufferStats.readLine();
-        this.usersDefaultHitProb = Double.parseDouble(nextLine);
+        this.tweetsUidDefaultHitProb = Double.parseDouble(nextLine);
 
         // Now start the partitions of tweets by the post popular users
         nextLine = bufferStats.readLine();
@@ -368,6 +436,119 @@ public class WorkloadState {
         // We reached the end. We need to remove the last entry and use that as
         // default hit prob
         this.tweetsDefaultHitProb = this.tweetsHitProbMap.remove(pred_uid-1);
+    }
+
+    public void resetMisraGries() {
+        // Must be called from a synchronized method
+        if (this.bins != null) {
+            bins.clear();
+        }
+        this.bins = new TreeSet<PredScore>(binComp);
+        for (int i=0; i<NUM_BINS; i++) {
+            bins.add(new PredScore(0, -1));
+        }
+    }
+
+
+    public double get_np_val(double x, double rp_val, double sp_val) {
+        return (sp_val *
+                (1.0 - 1.0/Math.pow((1 + x*rp_val/sp_val), Lp + 1)));
+    }
+
+    public double func(double[] access_probs, int[] partition_sizes, double x) {
+        double np_val_sum = 0.0;
+        for (int i=0; i<access_probs.length; i++) {
+            double np_val = get_np_val(x, access_probs[i], partition_sizes[i]);
+            np_val_sum += np_val;
+        }
+        return np_val_sum - BUFFER_SIZE;
+    }
+
+    public double bisect(double[] access_probs, int[] partition_sizes) {
+        int maxIter = 100;
+        double tol = 8.881784197001252e-16;
+        double a = 0.0, b = 10.0 * BUFFER_SIZE;
+
+        for (int i=0; i<maxIter; i++) {
+            double c = (a+b)/2;
+            double f_c = func(access_probs, partition_sizes, c);
+            if (f_c == 0 || (b-a)/2 < tol) {
+                return c;
+            }
+            // New interval
+            double f_a = func(access_probs, partition_sizes, a);
+            if ((f_c > 0 && f_a > 0) || (f_c < 0 && f_a < 0)) {
+                // sign(f(c)) == sign(f(a))
+                a = c;
+            } else {
+                b = c;
+            }
+
+        }
+        return Double.MIN_VALUE;
+
+    }
+
+    public void calculateHitProbs() {
+        long[] preds = new long[NUM_BINS];
+
+        // Get partition access probabilities & partition set sizes
+        int idx = 0;
+        double[] partition_probs = new double[NUM_BINS];
+        int[] partition_sizes = new int[NUM_BINS];
+        List<Double> weights = currentPhase.getWeights();
+
+        // Add info about known tables
+        // 1. Follows table
+        partition_probs[idx] = weights.get(1);
+        partition_sizes[idx] = followsRelPages;
+        idx++;
+
+        // 2. Followers table
+        partition_probs[idx] = weights.get(2);
+        partition_sizes[idx] = followersRelPages;
+        idx++;
+
+        // 3. User profiles table
+        partition_probs[idx] = weights.get(2);
+        partition_sizes[idx] = usersRelPages;
+        idx++;
+
+        // 4. Tweets UID index
+        partition_probs[idx] = (weights.get(1) + weights.get(3));
+        partition_sizes[idx] = tweetsUidRelPages;
+        idx++;
+
+        for (PredScore bin: binMap.values()) {
+            // Store predicate value
+            preds[idx] = bin.element;
+
+            // Calculate access probability
+            partition_probs[idx] = (weights.get(1) + weights.get(3)) * bin.counter * 1.0 / BIN_WINDOW_THRESHOLD;
+
+            // Calculate partition size
+            // Assume simple part size calculation
+            int size = (int) (tweetRelFreqMap.getOrDefault(preds[idx],
+                            tweetsDefaultSelectivity) * tweetRelTuples);
+            partition_sizes[idx] = size;
+
+            idx++;
+        }
+
+        // Clear the previous hit probabilities
+        this.tweetsHitProbMap.clear();
+
+        // Recalculate them
+        double x_val = bisect(partition_probs, partition_sizes);
+        for (int i=0; i < NUM_BINS; i++) {
+            double np_val = get_np_val(x_val, partition_probs[i], partition_sizes[i]);
+            double hit_prob = np_val / partition_sizes[i];
+            this.tweetsHitProbMap.put(preds[i], hit_prob);
+        }
+        // We reached the end. We need to remove the last entry and use that as
+        // default hit prob
+        this.tweetsDefaultHitProb = this.tweetsHitProbMap.remove(preds[NUM_BINS-1]);
+
     }
 
     /**
@@ -658,11 +839,75 @@ public class WorkloadState {
                     }
                 }
             }
+
+            if ((SchedPolicy.valueOf(this.schedPolicy) == SchedPolicy.EDF_PRED_DYNAMIC) ||
+                (SchedPolicy.valueOf(this.schedPolicy) == SchedPolicy.GEDF_PRED_DYNAMIC)) {
+                // We maintain a sliding window of predicate results. Reset bins
+                // if we have reached the appropriate size
+                if (this.binWindowSize > this.BIN_WINDOW_THRESHOLD) {
+                    resetMisraGries();
+                    calculateHitProbs();
+                    this.binWindowSize = 0;
+                }
+            }
             return workQueue.poll();
         }
     }
 
+    public void updateBins(ArrayList<Object> results) {
+        Iterator it = results.iterator();
+
+        synchronized (this) {
+            while (it.hasNext()) {
+                Long pred = (Long) it.next();
+                if (binMap.containsKey(pred)) {
+                    // Increment bin counter
+                    PredScore bin = binMap.get(pred);
+                    bins.remove(bin);
+                    bin.counter++;
+                    bins.add(bin);
+                } else {
+                    PredScore lowestBin = null;
+                    try {
+                        lowestBin = bins.first();
+                    } catch (NoSuchElementException e) {
+                        assert false;
+                    }
+
+                    if (lowestBin.counter == 0) {
+                        // Found a bin with counter 0. Map the predicate to this
+                        // bin.
+                        bins.remove(lowestBin);
+                        binMap.remove(lowestBin.element);
+
+                        lowestBin.element = pred;
+                        bins.add(lowestBin);
+                        binMap.put(lowestBin.element, lowestBin);
+                    } else {
+                        // Did not find a relevant bin. Decrement all counters
+                        Object[] binElems = bins.toArray();
+                        bins.clear();
+                        for (Object obj: binElems) {
+                            PredScore newElem = (PredScore) obj;
+                            newElem.counter--;
+                            bins.add(newElem);
+                        }
+                    }
+                }
+            }
+            this.binWindowSize++;
+        }
+    }
     public void updateTweetResults(ArrayList<Object> results) {
+        if ((SchedPolicy.valueOf(this.schedPolicy) ==
+                SchedPolicy.EDF_PRED_DYNAMIC) ||
+            (SchedPolicy.valueOf(this.schedPolicy) ==
+                SchedPolicy.GEDF_PRED_DYNAMIC)) {
+            // Just update the Misra-Gries bins
+            updateBins(results);
+            return;
+        }
+
         if (RESULTS_QUEUE_LIMIT == 0) {
             // We don't need to store results. Return
             return;

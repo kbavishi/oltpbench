@@ -36,7 +36,9 @@ def trim_first_line(csv_file):
 
 def generate_twitter_config(sched_policy, pred_history, arrival_rate=75,
                             alpha=0.5, gedf_factor=0.4, timeout=300,
-                            fixed_deadline="false", random_page_cost=4.0):
+                            fixed_deadline="false", random_page_cost=4.0,
+                            num_bins=200, buffer_size=750*1024*1024,
+                            bin_window_threshold=25*300):
     os.environ["POSTGRES_IP"] = POSTGRES_IP
     os.environ["SCHED_POLICY"] = sched_policy
     os.environ["PRED_HISTORY"] = str(pred_history)
@@ -46,6 +48,9 @@ def generate_twitter_config(sched_policy, pred_history, arrival_rate=75,
     os.environ["TIMEOUT"] = str(timeout)
     os.environ["FIXED_DEADLINE"] = fixed_deadline
     os.environ["RANDOM_PAGE_COST"] = "%.2f" % random_page_cost
+    os.environ["NUM_BINS"] = str(num_bins)
+    os.environ["BUFFER_SIZE"] = str(buffer_size)
+    os.environ["BIN_WINDOW_THRESHOLD"] = str(bin_window_threshold)
 
     run_bash_cmd("j2 config/twitter_config.xml.j2 | "
                  "tee config/twitter_config.xml")

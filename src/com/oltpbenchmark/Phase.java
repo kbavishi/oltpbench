@@ -102,6 +102,8 @@ public class Phase {
                 break;
             case EDF_PRED_BUF_LOC_FULL:
             case GEDF_PRED_BUF_LOC_FULL:
+            case EDF_PRED_DYNAMIC:
+            case GEDF_PRED_DYNAMIC:
                 inputFilePath = System.getProperty("user.home") + File.separator +
                     "input_jobs_loc_cost_new.txt";
                 break;

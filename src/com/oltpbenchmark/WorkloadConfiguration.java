@@ -61,6 +61,11 @@ public class WorkloadConfiguration {
 	private int loaderThreads = ThreadUtil.availableProcessors();
 	private int numTxnTypes;
     private TraceReader traceReader = null;
+
+    private int numBins = 200;
+    private int bufferSize = 750 * 1024 * 1024;
+    private int binWindowThreshold = 25 * 300;
+
     public TraceReader getTraceReader() {
         return traceReader;
     }
@@ -86,7 +91,9 @@ public class WorkloadConfiguration {
                                           this.schedPolicy, this.alpha,
                                           this.gedfFactor, this.predResultsHistory,
                                           this.randomPageCost, this.fixedDeadline,
-                                          this.defaultDeadlineNs, traceReader);
+                                          this.defaultDeadlineNs, this.numBins,
+                                          this.bufferSize, this.binWindowThreshold,
+                                          traceReader);
         return workloadState;
     }
 
@@ -237,6 +244,29 @@ public class WorkloadConfiguration {
 	
 	public long getDefaultDeadlineNs() {
 		return this.defaultDeadlineNs;
+	}
+	public void setNumBins(int numBins) {
+		this.numBins = numBins;
+	}
+	
+	public int getNumBins() {
+		return this.numBins;
+	}
+
+	public void setBufferSize(int size) {
+		this.bufferSize = size;
+	}
+	
+	public int getBufferSize() {
+		return this.bufferSize;
+	}
+
+	public void setBinWindowThreshold(int binWindowThreshold) {
+		this.binWindowThreshold = binWindowThreshold;
+	}
+	
+	public int getBinWindowThreshold() {
+		return this.binWindowThreshold;
 	}
 
 	/**

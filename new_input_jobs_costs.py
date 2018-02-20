@@ -138,19 +138,26 @@ def read_input_file(cur, limit=2000000, print_pred=False):
 
         line = f.readline()
 
-def create_table_stats_file(cur, table_name, attr_name, index_name):
-    cur.execute("SELECT relpages, reltuples FROM pg_class WHERE relname = 'tweets'")
+def create_table_stats_file(cur, table_name, attr_name=None, index_name=None):
+    cur.execute("SELECT relpages, reltuples FROM pg_class WHERE relname = '%s'"
+                % table_name)
     relpages, reltuples = cur.fetchone()
 
-    cur.execute("SELECT n_distinct, most_common_vals, most_common_freqs FROM pg_stats "
-                "WHERE tablename='%s' AND attname='%s'" % (table_name, attr_name))
-    n_distinct, most_common_vals, most_common_freqs = cur.fetchone()
+    n_distinct, most_common_vals, most_common_freqs = None, None, None
+    if attr_name:
+        cur.execute("SELECT n_distinct, most_common_vals, most_common_freqs FROM pg_stats "
+                    "WHERE tablename='%s' AND attname='%s'" % (table_name, attr_name))
+        n_distinct, most_common_vals, most_common_freqs = cur.fetchone()
+
     if not most_common_vals:
         most_common_vals = ""
     else:
         most_common_vals = most_common_vals.strip("{").strip("}")
-    cur.execute("SELECT tree_level FROM pgstatindex('%s')" % index_name)
-    tree_level = int(cur.fetchone()[0])
+
+    tree_level = None
+    if index_name:
+        cur.execute("SELECT tree_level FROM pgstatindex('%s')" % index_name)
+        tree_level = int(cur.fetchone()[0])
 
     # Update in-memory information
     mcv = map(int, filter(None, most_common_vals.split(",")))
@@ -168,7 +175,8 @@ def create_table_stats_file(cur, table_name, attr_name, index_name):
     filename = os.path.join(os.getenv("HOME"), "%s_stats.txt" % table_name)
     with open(filename, "w") as f:
         f.write("%s,%s\n" % (int(relpages), int(reltuples)))
-        f.write("%s\n" % int(n_distinct))
+        if n_distinct:
+            f.write("%s\n" % int(n_distinct))
         if most_common_vals:
             f.write("%s\n" % most_common_vals)
         if most_common_freqs:
@@ -188,6 +196,7 @@ if __name__ == '__main__':
     create_table_stats_file(cur, "follows", "f1", "follows_pkey")
     create_table_stats_file(cur, "followers", "f1", "followers_pkey")
     create_table_stats_file(cur, "user_profiles", "uid", "user_profiles_pkey")
+    create_table_stats_file(cur, "idx_tweets_uid")
 
     print_pred = (sys.argv[4] == "true")
     read_input_file(cur, print_pred=print_pred)

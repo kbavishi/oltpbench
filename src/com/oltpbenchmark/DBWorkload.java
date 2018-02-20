@@ -220,6 +220,10 @@ public class DBWorkload {
             wrkld.setFixedDeadline(xmlConfig.getBoolean("fixed_deadline", false));
             wrkld.setDefaultDeadlineNs(xmlConfig.getLong("default_deadline_ns", 500000000));
             wrkld.setRandomPageCost(xmlConfig.getDouble("random_page_cost", 4.0));
+
+            wrkld.setNumBins(xmlConfig.getInt("num_bins", 200));
+            wrkld.setBufferSize(xmlConfig.getInt("buffer_size", 750*1024*1024));
+            wrkld.setBinWindowThreshold(xmlConfig.getInt("bin_window_threshold", 7500));
             
             int terminals = xmlConfig.getInt("terminals[not(@bench)]", 0);
             terminals = xmlConfig.getInt("terminals" + pluginTest, terminals);
@@ -271,6 +275,9 @@ public class DBWorkload {
             initDebug.put("Fixed Deadline", wrkld.getFixedDeadline());
             initDebug.put("Default Deadline (ns)", wrkld.getDefaultDeadlineNs());
             initDebug.put("Random page cost", wrkld.getRandomPageCost());
+            initDebug.put("Number of bins", wrkld.getNumBins());
+            initDebug.put("Buffer size", wrkld.getBufferSize());
+            initDebug.put("Bin window threshold", wrkld.getBinWindowThreshold());
             
             if(selectivity != -1)
                 initDebug.put("Selectivity", selectivity);
