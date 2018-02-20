@@ -222,7 +222,7 @@ public class DBWorkload {
             wrkld.setRandomPageCost(xmlConfig.getDouble("random_page_cost", 4.0));
 
             wrkld.setNumBins(xmlConfig.getInt("num_bins", 200));
-            wrkld.setBufferSize(xmlConfig.getInt("buffer_size", 750*1024*1024));
+            wrkld.setBufferSize(xmlConfig.getInt("buffer_size", 750*1024*1024/8192));
             wrkld.setBinWindowThreshold(xmlConfig.getInt("bin_window_threshold", 7500));
             
             int terminals = xmlConfig.getInt("terminals[not(@bench)]", 0);

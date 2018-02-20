@@ -37,7 +37,7 @@ def trim_first_line(csv_file):
 def generate_twitter_config(sched_policy, pred_history, arrival_rate=75,
                             alpha=0.5, gedf_factor=0.4, timeout=300,
                             fixed_deadline="false", random_page_cost=4.0,
-                            num_bins=200, buffer_size=750*1024*1024,
+                            num_bins=200, buffer_size=750*1024*1024/8192,
                             bin_window_threshold=25*300):
     os.environ["POSTGRES_IP"] = POSTGRES_IP
     os.environ["SCHED_POLICY"] = sched_policy

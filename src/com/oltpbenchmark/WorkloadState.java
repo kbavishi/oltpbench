@@ -121,7 +121,7 @@ public class WorkloadState {
     private TreeSet<PredScore> bins;
     private int NUM_BINS = 200;
     private HashMap<Long, PredScore> binMap = new HashMap<Long, PredScore>();
-    private int BUFFER_SIZE = 750 * 1024 * 1024;
+    private int BUFFER_SIZE = 750 * 1024 * 1024 / 8192;
     private int Lp = 5;
     private int BIN_WINDOW_THRESHOLD = 7500;
     private int binWindowSize = 0;

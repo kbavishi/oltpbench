@@ -63,7 +63,7 @@ public class WorkloadConfiguration {
     private TraceReader traceReader = null;
 
     private int numBins = 200;
-    private int bufferSize = 750 * 1024 * 1024;
+    private int bufferSize = 750 * 1024 * 1024 / 8192;
     private int binWindowThreshold = 25 * 300;
 
     public TraceReader getTraceReader() {
