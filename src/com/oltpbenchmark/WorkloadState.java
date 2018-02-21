@@ -251,7 +251,7 @@ public class WorkloadState {
             if (p1.counter != p2.counter) {
                 return Integer.compare(p1.counter, p2.counter);
             } else {
-                return Integer.compare(p1.element, p2.element);
+                return Long.compare(p1.element, p2.element);
             }
         }
     };
