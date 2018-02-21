@@ -443,7 +443,7 @@ public class WorkloadState {
         // We reached the end. We need to remove the last entry and use that as
         // default hit prob
         this.tweetsDefaultHitProb = this.tweetsHitProbMap.remove(pred_uid);
-        LOG.info("Original hit prob for default pred: " + hit_prob);
+        LOG.info("Original hit prob for default pred: " + this.tweetsDefaultHitProb);
     }
 
     public void resetMisraGries() {
