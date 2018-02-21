@@ -177,4 +177,10 @@ if __name__ == '__main__':
         np_val = get_np_val(ratio, rp_vals[i], sp_vals[i])
         hit_prob = np_val / sp_vals[i]
         print "PARTITION_NP %d: %s" % (i+1, hit_prob)
-        f.write("%s\n" % hit_prob)
+        if i>=4:
+            # For the popular tweets partitions, print the predicate and the
+            # prob.
+            f.write("%s %s\n" % (i+1, hit_prob))
+        else:
+            # For the initial table partitions, just print the prob
+            f.write("%s\n" % hit_prob)

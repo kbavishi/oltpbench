@@ -430,17 +430,20 @@ public class WorkloadState {
 
         // Now start the partitions of tweets by the post popular users
         nextLine = bufferStats.readLine();
-        Long pred_uid = 1L;
+        long pred_uid = 0;
         while (nextLine != null) {
-            double hit_prob = Double.parseDouble(nextLine);
+            String[] array = nextLine.split(",", 2);
+            pred_uid = Long.parseLong(array[0]);
+            double hit_prob = Double.parseDouble(array[1]);
             this.tweetsHitProbMap.put(pred_uid, hit_prob);
+            LOG.info("Original hit prob for pred " + pred_uid + ": " + hit_prob);
             nextLine = bufferStats.readLine();
-            pred_uid++;
         }
 
         // We reached the end. We need to remove the last entry and use that as
         // default hit prob
-        this.tweetsDefaultHitProb = this.tweetsHitProbMap.remove(pred_uid-1);
+        this.tweetsDefaultHitProb = this.tweetsHitProbMap.remove(pred_uid);
+        LOG.info("Original hit prob for default pred: " + hit_prob);
     }
 
     public void resetMisraGries() {
@@ -497,6 +500,7 @@ public class WorkloadState {
     }
 
     public void calculateHitProbs() {
+        LOG.info("calculateHitProbs()");
         int num_bins = binMap.size() + 5;
         long[] preds = new long[num_bins];
 
@@ -562,11 +566,13 @@ public class WorkloadState {
             double np_val = get_np_val(x_val, partition_probs[i], partition_sizes[i]);
             double hit_prob = np_val / partition_sizes[i];
             this.tweetsHitProbMap.put(preds[i], hit_prob);
+            LOG.info("Calculated for pred " + preds[i] + ": " + hit_prob);
         }
         // We also need to calculate the hit prob of the unpopular tweets
         double def_np_val = get_np_val(x_val, partition_probs[num_bins-1],
                                        partition_sizes[num_bins-1]);
         this.tweetsDefaultHitProb = def_np_val / partition_sizes[num_bins-1];
+        LOG.info("Calculated for default pred: " + this.tweetsDefaultHitProb);
 
     }
 
