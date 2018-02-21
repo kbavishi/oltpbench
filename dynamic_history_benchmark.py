@@ -85,7 +85,7 @@ def run_twitter_benchmark(sched_policy, output_file, csv_file, iterations=11,
         pred, prob = lines[i].strip().split()
         new_lines += ["%s %s" % (random.randint(1, 150000), prob)]
 
-    lines = lines[:4] + new_lines
+    lines = [l.strip() for l in lines[:4]] + new_lines
     with open(stats_file, "w") as f:
         for line in lines:
             f.write("%s\n" % line)
