@@ -248,7 +248,11 @@ public class WorkloadState {
     public static Comparator<PredScore> binComp = new Comparator<PredScore>(){
         @Override
         public int compare(PredScore p1, PredScore p2) {
-            return Integer.compare(p1.counter, p2.counter);
+            if (p1.counter != p2.counter) {
+                return Integer.compare(p1.counter, p2.counter);
+            } else {
+                return Integer.compare(p1.element, p2.element);
+            }
         }
     };
 
