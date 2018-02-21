@@ -120,7 +120,7 @@ if __name__ == '__main__':
     # Create necessary directories
     create_dir_if_not_exists("output")
     create_dir_if_not_exists("results")
-    create_dir_if_not_exists("new_pred_data")
+    create_dir_if_not_exists("dyn_pred_data")
 
     parser = argparse.ArgumentParser(description='Run EDF tests')
     parser.add_argument('postgres_ip', metavar='IP_ADDR', type=str,
@@ -158,7 +158,7 @@ if __name__ == '__main__':
 
     # Rename output and results directory for backups
     deadline = "nfd" if args.fixed_deadline == "false" else "fd"
-    parent_dir = "new_pred_data/ph_%s_alpha_%s_gedf_%s_%s" % (args.rate, alpha,
+    parent_dir = "dyn_pred_data/ph_%s_alpha_%s_gedf_%s_%s" % (args.rate, alpha,
                                                               gedf_factor,
                                                               deadline)
     os.renames("output", "%s/output" % parent_dir)
