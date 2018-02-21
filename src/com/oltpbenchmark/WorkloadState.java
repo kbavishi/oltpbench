@@ -492,13 +492,13 @@ public class WorkloadState {
     }
 
     public void calculateHitProbs() {
-        int num_bins = binMap.size();
+        int num_bins = binMap.size() + 5;
         long[] preds = new long[num_bins];
 
         // Get partition access probabilities & partition set sizes
         int idx = 0;
-        double[] partition_probs = new double[num_bins+1];
-        int[] partition_sizes = new int[num_bins+1];
+        double[] partition_probs = new double[num_bins];
+        int[] partition_sizes = new int[num_bins];
         List<Double> weights = currentPhase.getWeights();
 
         // Add info about known tables
@@ -551,7 +551,7 @@ public class WorkloadState {
 
         // Recalculate them
         double x_val = bisect(partition_probs, partition_sizes);
-        for (int i=0; i < num_bins; i++) {
+        for (int i=4; i < num_bins; i++) {
             double np_val = get_np_val(x_val, partition_probs[i], partition_sizes[i]);
             double hit_prob = np_val / partition_sizes[i];
             this.tweetsHitProbMap.put(preds[i], hit_prob);
@@ -898,6 +898,7 @@ public class WorkloadState {
                                 binMap.remove(currBin.element);
                                 continue;
                             }
+                            bins.remove(currBin);
                             currBin.counter--;
                             bins.add(currBin);
                         }
