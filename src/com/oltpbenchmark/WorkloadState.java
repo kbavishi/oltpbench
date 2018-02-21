@@ -504,25 +504,27 @@ public class WorkloadState {
         double[] partition_probs = new double[num_bins];
         int[] partition_sizes = new int[num_bins];
         List<Double> weights = currentPhase.getWeights();
+        double weight_norm = weights.get(0) + weights.get(1) + weights.get(2) +
+            weights.get(3) + weights.get(4);
 
         // Add info about known tables
         // 1. Follows table
-        partition_probs[idx] = weights.get(1);
+        partition_probs[idx] = (weights.get(1)/weight_norm);
         partition_sizes[idx] = followsRelPages;
         idx++;
 
         // 2. Followers table
-        partition_probs[idx] = weights.get(2);
+        partition_probs[idx] = (weights.get(2)/weight_norm);
         partition_sizes[idx] = followersRelPages;
         idx++;
 
         // 3. User profiles table
-        partition_probs[idx] = weights.get(2);
+        partition_probs[idx] = (weights.get(2)/weight_norm);
         partition_sizes[idx] = usersRelPages;
         idx++;
 
         // 4. Tweets UID index
-        partition_probs[idx] = (weights.get(1) + weights.get(3));
+        partition_probs[idx] = ((weights.get(1) + weights.get(3))/weight_norm);
         partition_sizes[idx] = tweetsUidRelPages;
         idx++;
 
@@ -532,7 +534,7 @@ public class WorkloadState {
             preds[idx] = bin.element;
 
             // Calculate access probability
-            partition_probs[idx] = (weights.get(1) + weights.get(3)) *
+            partition_probs[idx] = ((weights.get(1) + weights.get(3))/weight_norm) *
                 bin.counter * 1.0 / BIN_WINDOW_THRESHOLD;
 
             // Calculate partition size
