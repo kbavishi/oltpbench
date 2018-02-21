@@ -876,8 +876,10 @@ public class WorkloadState {
                     // Increment bin counter
                     PredScore bin = binMap.get(pred);
                     bins.remove(bin);
+                    binMap.remove(bin.element);
                     bin.counter++;
                     bins.add(bin);
+                    binMap.put(pred, bin);
                 } else {
                     if (bins.size() < NUM_BINS) {
                         // Found a bin with counter 0. Map the predicate to this
@@ -899,8 +901,10 @@ public class WorkloadState {
                                 continue;
                             }
                             bins.remove(currBin);
+                            binMap.remove(currBin.element);
                             currBin.counter--;
                             bins.add(currBin);
+                            binMap.put(currBin.element, currBin);
                         }
                         foundUnpopularPred = true;
                     }
