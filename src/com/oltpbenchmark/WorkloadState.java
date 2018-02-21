@@ -546,24 +546,24 @@ public class WorkloadState {
         }
 
         // Add partition for unpopular tweets
-        partition_probs[num_bins] = (weights.get(1) + weights.get(3)) *
+        partition_probs[num_bins-1] = (weights.get(1) + weights.get(3)) *
             unpopularPredicates * 1.0 / BIN_WINDOW_THRESHOLD;
-        partition_sizes[num_bins] = tweetRelPages - popular_preds_sizes;
+        partition_sizes[num_bins-1] = tweetRelPages - popular_preds_sizes;
 
         // Clear the previous hit probabilities
         this.tweetsHitProbMap.clear();
 
         // Recalculate them
         double x_val = bisect(partition_probs, partition_sizes);
-        for (int i=4; i < num_bins; i++) {
+        for (int i=4; i < num_bins-1; i++) {
             double np_val = get_np_val(x_val, partition_probs[i], partition_sizes[i]);
             double hit_prob = np_val / partition_sizes[i];
             this.tweetsHitProbMap.put(preds[i], hit_prob);
         }
         // We also need to calculate the hit prob of the unpopular tweets
-        double def_np_val = get_np_val(x_val, partition_probs[num_bins],
-                                       partition_sizes[num_bins]);
-        this.tweetsDefaultHitProb = def_np_val / partition_sizes[num_bins];
+        double def_np_val = get_np_val(x_val, partition_probs[num_bins-1],
+                                       partition_sizes[num_bins-1]);
+        this.tweetsDefaultHitProb = def_np_val / partition_sizes[num_bins-1];
 
     }
 
