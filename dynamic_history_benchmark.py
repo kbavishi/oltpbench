@@ -61,6 +61,10 @@ def run_twitter_benchmark(sched_policy, output_file, csv_file, iterations=11,
                           pred_history=0, arrival_rate=75, alpha=0.5,
                           gedf_factor=0.4, timeout=720,
                           fixed_deadline="false", random_page_cost=4.0):
+
+    # Recalculation should be triggered close to t=7 mins
+    bin_window_threshold = int(7 * 60 * min(arrival_rate, 15) * 0.91)
+
     generate_twitter_config(sched_policy, pred_history,
                             arrival_rate=arrival_rate, alpha=alpha,
                             gedf_factor=gedf_factor, timeout=timeout,
