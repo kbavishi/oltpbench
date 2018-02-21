@@ -112,13 +112,21 @@ def run_twitter_benchmark(sched_policy, output_file, csv_file, iterations=11,
 def main(arrival_rate, iterations, alpha, gedf_factor, fixed_deadline,
          random_page_cost):
     print "CURRENTLY TESTING: %s, %s, %s" % (arrival_rate, alpha, gedf_factor)
-    run_twitter_benchmark("fifo", "output/fifo", "fifo",
+    run_twitter_benchmark("edf_pred_dynamic", "output/edf_pred_dynamic",
+                          "edf_pred_dynamic",
                           iterations=iterations,
                           arrival_rate=arrival_rate, alpha=alpha,
                           gedf_factor=gedf_factor,
                           fixed_deadline=fixed_deadline,
                           random_page_cost=random_page_cost)
 
+    run_twitter_benchmark("gedf_pred_dynamic", "output/gedf_pred_dynamic",
+                          "gedf_pred_dynamic",
+                          iterations=iterations,
+                          arrival_rate=arrival_rate, alpha=alpha,
+                          gedf_factor=gedf_factor,
+                          fixed_deadline=fixed_deadline,
+                          random_page_cost=random_page_cost)
 
 if __name__ == '__main__':
     # Create necessary directories

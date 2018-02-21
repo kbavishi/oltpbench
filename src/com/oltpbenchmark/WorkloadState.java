@@ -432,7 +432,7 @@ public class WorkloadState {
         nextLine = bufferStats.readLine();
         long pred_uid = 0;
         while (nextLine != null) {
-            String[] array = nextLine.split(",", 2);
+            String[] array = nextLine.split(" ", 2);
             pred_uid = Long.parseLong(array[0]);
             double hit_prob = Double.parseDouble(array[1]);
             this.tweetsHitProbMap.put(pred_uid, hit_prob);
