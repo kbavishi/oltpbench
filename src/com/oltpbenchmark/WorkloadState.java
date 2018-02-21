@@ -443,10 +443,8 @@ public class WorkloadState {
         // Must be called from a synchronized method
         if (this.bins != null) {
             bins.clear();
-        }
-        this.bins = new TreeSet<PredScore>(binComp);
-        for (int i=0; i<NUM_BINS; i++) {
-            bins.add(new PredScore(0, -1));
+        } else {
+            this.bins = new TreeSet<PredScore>(binComp);
         }
         this.binWindowSize = 0;
         // This is used to help calculate unpopular predicates
@@ -494,12 +492,13 @@ public class WorkloadState {
     }
 
     public void calculateHitProbs() {
-        long[] preds = new long[NUM_BINS];
+        int num_bins = binMap.size();
+        long[] preds = new long[num_bins];
 
         // Get partition access probabilities & partition set sizes
         int idx = 0;
-        double[] partition_probs = new double[NUM_BINS+1];
-        int[] partition_sizes = new int[NUM_BINS+1];
+        double[] partition_probs = new double[num_bins+1];
+        int[] partition_sizes = new int[num_bins+1];
         List<Double> weights = currentPhase.getWeights();
 
         // Add info about known tables
@@ -543,24 +542,24 @@ public class WorkloadState {
         }
 
         // Add partition for unpopular tweets
-        partition_probs[NUM_BINS] = (weights.get(1) + weights.get(3)) *
+        partition_probs[num_bins] = (weights.get(1) + weights.get(3)) *
             unpopularPredicates * 1.0 / BIN_WINDOW_THRESHOLD;
-        partition_sizes[NUM_BINS] = tweetRelPages - popular_preds_sizes;
+        partition_sizes[num_bins] = tweetRelPages - popular_preds_sizes;
 
         // Clear the previous hit probabilities
         this.tweetsHitProbMap.clear();
 
         // Recalculate them
         double x_val = bisect(partition_probs, partition_sizes);
-        for (int i=0; i < NUM_BINS; i++) {
+        for (int i=0; i < num_bins; i++) {
             double np_val = get_np_val(x_val, partition_probs[i], partition_sizes[i]);
             double hit_prob = np_val / partition_sizes[i];
             this.tweetsHitProbMap.put(preds[i], hit_prob);
         }
         // We also need to calculate the hit prob of the unpopular tweets
-        double def_np_val = get_np_val(x_val, partition_probs[NUM_BINS],
-                                       partition_sizes[NUM_BINS]);
-        this.tweetsDefaultHitProb = def_np_val / partition_sizes[NUM_BINS];
+        double def_np_val = get_np_val(x_val, partition_probs[num_bins],
+                                       partition_sizes[num_bins]);
+        this.tweetsDefaultHitProb = def_np_val / partition_sizes[num_bins];
 
     }
 
@@ -880,22 +879,10 @@ public class WorkloadState {
                     bin.counter++;
                     bins.add(bin);
                 } else {
-                    PredScore lowestBin = null;
-                    try {
-                        lowestBin = bins.first();
-                    } catch (NoSuchElementException e) {
-                        assert false;
-                    }
-
-                    if (lowestBin.counter == 0) {
+                    if (bins.size() < NUM_BINS) {
                         // Found a bin with counter 0. Map the predicate to this
                         // bin.
-                        bins.remove(lowestBin);
-                        binMap.remove(lowestBin.element);
-
-                        lowestBin.element = pred;
-                        lowestBin.counter = 1;
-
+                        PredScore lowestBin = new PredScore(1, pred);
                         bins.add(lowestBin);
                         binMap.put(lowestBin.element, lowestBin);
                     } else {
@@ -903,17 +890,16 @@ public class WorkloadState {
                         Object[] binElems = bins.toArray();
                         bins.clear();
                         for (Object obj: binElems) {
-                            PredScore newElem = (PredScore) obj;
-                            if (newElem.counter == 0) {
-                                newElem.element = -1;
+                            PredScore currBin = (PredScore) obj;
+                            if (currBin.counter == 1) {
+                                // Bin will be decremented to zero. Just clear
+                                // bin
+                                bins.remove(currBin);
+                                binMap.remove(currBin.element);
                                 continue;
                             }
-                            newElem.counter--;
-                            if (newElem.counter == 0) {
-                                binMap.remove(newElem.element);
-                                newElem.element = -1;
-                            }
-                            bins.add(newElem);
+                            currBin.counter--;
+                            bins.add(currBin);
                         }
                         foundUnpopularPred = true;
                     }
