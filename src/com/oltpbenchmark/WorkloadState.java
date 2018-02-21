@@ -450,6 +450,7 @@ public class WorkloadState {
         } else {
             this.bins = new TreeSet<PredScore>(binComp);
         }
+        this.binMap.clear();
         this.binWindowSize = 0;
         // This is used to help calculate unpopular predicates
         this.unpopularPredicates = 0;
