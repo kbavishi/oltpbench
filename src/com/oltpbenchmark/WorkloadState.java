@@ -125,6 +125,7 @@ public class WorkloadState {
     private int Lp = 5;
     private int BIN_WINDOW_THRESHOLD = 7500;
     private int binWindowSize = 0;
+    private int unpopularPredicates = 0;
 
     public WorkloadState(BenchmarkState benchmarkState, List<Phase> works, int num_terminals,
             int schedPolicy, double alpha, double gedfFactor, int predResultsHistory,
@@ -447,6 +448,9 @@ public class WorkloadState {
         for (int i=0; i<NUM_BINS; i++) {
             bins.add(new PredScore(0, -1));
         }
+        this.binWindowSize = 0;
+        // This is used to help calculate unpopular predicates
+        this.unpopularPredicates = 0;
     }
 
 
@@ -494,8 +498,8 @@ public class WorkloadState {
 
         // Get partition access probabilities & partition set sizes
         int idx = 0;
-        double[] partition_probs = new double[NUM_BINS];
-        int[] partition_sizes = new int[NUM_BINS];
+        double[] partition_probs = new double[NUM_BINS+1];
+        int[] partition_sizes = new int[NUM_BINS+1];
         List<Double> weights = currentPhase.getWeights();
 
         // Add info about known tables
@@ -519,21 +523,29 @@ public class WorkloadState {
         partition_sizes[idx] = tweetsUidRelPages;
         idx++;
 
+        int popular_preds_sizes = 0;
         for (PredScore bin: binMap.values()) {
             // Store predicate value
             preds[idx] = bin.element;
 
             // Calculate access probability
-            partition_probs[idx] = (weights.get(1) + weights.get(3)) * bin.counter * 1.0 / BIN_WINDOW_THRESHOLD;
+            partition_probs[idx] = (weights.get(1) + weights.get(3)) *
+                bin.counter * 1.0 / BIN_WINDOW_THRESHOLD;
 
             // Calculate partition size
             // Assume simple part size calculation
             int size = (int) (tweetRelFreqMap.getOrDefault(preds[idx],
                             tweetsDefaultSelectivity) * tweetRelTuples);
             partition_sizes[idx] = size;
+            popular_preds_sizes += size;
 
             idx++;
         }
+
+        // Add partition for unpopular tweets
+        partition_probs[NUM_BINS] = (weights.get(1) + weights.get(3)) *
+            unpopularPredicates * 1.0 / BIN_WINDOW_THRESHOLD;
+        partition_sizes[NUM_BINS] = tweetRelPages - popular_preds_sizes;
 
         // Clear the previous hit probabilities
         this.tweetsHitProbMap.clear();
@@ -545,9 +557,10 @@ public class WorkloadState {
             double hit_prob = np_val / partition_sizes[i];
             this.tweetsHitProbMap.put(preds[i], hit_prob);
         }
-        // We reached the end. We need to remove the last entry and use that as
-        // default hit prob
-        this.tweetsDefaultHitProb = this.tweetsHitProbMap.remove(preds[NUM_BINS-1]);
+        // We also need to calculate the hit prob of the unpopular tweets
+        double def_np_val = get_np_val(x_val, partition_probs[NUM_BINS],
+                                       partition_sizes[NUM_BINS]);
+        this.tweetsDefaultHitProb = def_np_val / partition_sizes[NUM_BINS];
 
     }
 
@@ -845,9 +858,8 @@ public class WorkloadState {
                 // We maintain a sliding window of predicate results. Reset bins
                 // if we have reached the appropriate size
                 if (this.binWindowSize > this.BIN_WINDOW_THRESHOLD) {
-                    resetMisraGries();
                     calculateHitProbs();
-                    this.binWindowSize = 0;
+                    resetMisraGries();
                 }
             }
             return workQueue.poll();
@@ -858,6 +870,7 @@ public class WorkloadState {
         Iterator it = results.iterator();
 
         synchronized (this) {
+            boolean foundUnpopularPred = false;
             while (it.hasNext()) {
                 Long pred = (Long) it.next();
                 if (binMap.containsKey(pred)) {
@@ -892,10 +905,17 @@ public class WorkloadState {
                             newElem.counter--;
                             bins.add(newElem);
                         }
+                        foundUnpopularPred = true;
                     }
                 }
             }
             this.binWindowSize++;
+            // For each result, we increment unpopularPredicates to figure out
+            // the access probability of the partition containing unpopular
+            // tweets
+            if (foundUnpopularPred) {
+                this.unpopularPredicates++;
+            }
         }
     }
     public void updateTweetResults(ArrayList<Object> results) {
