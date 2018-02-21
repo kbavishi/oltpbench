@@ -894,6 +894,8 @@ public class WorkloadState {
                         binMap.remove(lowestBin.element);
 
                         lowestBin.element = pred;
+                        lowestBin.counter = 1;
+
                         bins.add(lowestBin);
                         binMap.put(lowestBin.element, lowestBin);
                     } else {
@@ -902,7 +904,15 @@ public class WorkloadState {
                         bins.clear();
                         for (Object obj: binElems) {
                             PredScore newElem = (PredScore) obj;
+                            if (newElem.counter == 0) {
+                                newElem.element = -1;
+                                continue;
+                            }
                             newElem.counter--;
+                            if (newElem.counter == 0) {
+                                binMap.remove(newElem.element);
+                                newElem.element = -1;
+                            }
                             bins.add(newElem);
                         }
                         foundUnpopularPred = true;
