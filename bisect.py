@@ -53,6 +53,7 @@ def get_partition_access_probs(cur, num_partitions):
     for uid in xrange(1, num_partitions):
         num = get_num_follows_rows(cur, uid)
         all_probs += [(q2+q4) * num * 1.0/total_user_count]
+        print "Got follows result for %s" % uid
 
     # Last: Unpopular tweets
     cur.execute("SELECT COUNT(DISTINCT(f2)) FROM followers WHERE f1 NOT IN (%s);" % 
@@ -98,6 +99,7 @@ def get_partition_sizes(cur, num_partitions):
         num = get_num_tweets(cur, uid)
         all_sizes += [num]
         popular_tweets_num += num
+        print "Got tweets result for %s" % uid
 
     # Last: Unpopular tweets partition
     total_count = get_rel_pages(cur, "tweets") + \
@@ -155,7 +157,7 @@ if __name__ == '__main__':
                         help='Username to login to Postgres')
     parser.add_argument('password', metavar='PASSWORD', type=str,
                         help='Password to login to Postgres')
-    parser.add_argument('--partitions', type=int, default=100,
+    parser.add_argument('--partitions', type=int, default=200,
                         help='Number of popular partitions')
     parser.add_argument('--memory', type=int, default=768,
                         help='Buffer pool memory in MB')

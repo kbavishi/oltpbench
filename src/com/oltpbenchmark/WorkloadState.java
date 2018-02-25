@@ -535,6 +535,7 @@ public class WorkloadState {
 
         int popular_preds_sizes = 0;
         for (PredScore bin: binMap.values()) {
+            LOG.info("Found bin: " + bin.element + ", " + bin.counter);
             // Store predicate value
             preds[idx] = bin.element;
 

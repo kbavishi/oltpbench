@@ -6,8 +6,11 @@ import subprocess
 import shlex
 import sys
 
-LIMIT_FOLLOWERS = 100
+LIMIT_FOLLOWERS = 300
 LIMIT_TWEETS_FOR_UID = 10
+
+COST_FILE = os.path.join(os.environ.get("HOME"), "input_jobs_cost.txt")
+COST_LOC_FILE = os.path.join(os.environ.get("HOME"), "input_jobs_loc_cost.txt")
 
 def get_plan_cost(output):
     for line in output.split("\n"):
@@ -111,11 +114,14 @@ def run_transaction(cur, trans_type, num):
     else:
         assert False, "Unknown transaction type: %s" % trans_type
 
-def read_input_file(cur, limit=2000000, print_pred=False):
+def read_input_file(cur, limit=2000000):
     f = open(os.path.join(os.getenv("HOME"), "input_jobs.txt"), "r")
 
     count = 0
     line = f.readline()
+
+    f_cost = open(COST_FILE, "w")
+    f_loc_cost = open(COST_LOC_FILE, "w")
 
     while line and count < limit:
         count += 1
@@ -124,10 +130,8 @@ def read_input_file(cur, limit=2000000, print_pred=False):
         trans_type, num = map(int, line.split(","))
         cost, extra = run_transaction(cur, trans_type, num)
 
-        if extra and print_pred:
-            print "%s,%s,%s,%s" % (trans_type, num, cost, extra)
-        else:
-            print "%s,%s,%s" % (trans_type, num, cost)
+        f_cost.write("%s,%s,%s\n" % (trans_type, num, cost))
+        f_loc_cost.write("%s,%s,%s,%s\n" % (trans_type, num, cost, extra))
 
         line = f.readline()
 
@@ -148,7 +152,7 @@ def create_table_stats_file(cur):
         f.write("%s" % most_common_freqs)
 
 if __name__ == '__main__':
-    if len(sys.argv) not in [4, 5]:
+    if len(sys.argv) != 4:
         print "Incorrect arguments"
         sys.exit(1)
 
@@ -156,6 +160,4 @@ if __name__ == '__main__':
                             user=sys.argv[2], password=sys.argv[3])
     cur = conn.cursor()
     create_table_stats_file(cur)
-
-    print_pred = (sys.argv[4] == "true")
-    read_input_file(cur, print_pred=print_pred)
+    read_input_file(cur)
