@@ -754,8 +754,13 @@ public class WorkloadState {
 
             // Can't keep up with current rate? Remove the oldest transactions
             // (from the front of the queue).
-            while(workQueue.size() > RATE_QUEUE_LIMIT) {
-                workQueue.poll();
+            if (workQueue.size() > RATE_QUEUE_LIMIT) {
+                long currentTime = System.nanoTime();
+                while(workQueue.size() > RATE_QUEUE_LIMIT) {
+                    SubmittedProcedure proc = workQueue.poll();
+                    droppedTransactions++;
+                    droppedTransactionUsecs += ((currentTime - proc.getStartTime()) / 1000);
+                }
             }
 
             // Wake up sleeping workers to deal with the new work.
