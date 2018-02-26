@@ -7,7 +7,7 @@ import shlex
 import sys
 from collections import namedtuple
 
-LIMIT_FOLLOWERS = 300
+LIMIT_FOLLOWERS = 400
 LIMIT_TWEETS_FOR_UID = 10
 
 stats = {}
