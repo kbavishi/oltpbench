@@ -52,6 +52,6 @@ public abstract class TwitterConstants {
     // TODO: make the next parameters of WorkLoadConfiguration
     public static int LIMIT_TWEETS = 100;
     public static int LIMIT_TWEETS_FOR_UID = 10;
-    public static int LIMIT_FOLLOWERS = 300;
+    public static int LIMIT_FOLLOWERS = 400;
 	
 }

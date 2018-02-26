@@ -6,7 +6,7 @@ import subprocess
 import shlex
 import sys
 
-LIMIT_FOLLOWERS = 300
+LIMIT_FOLLOWERS = 400
 LIMIT_TWEETS_FOR_UID = 10
 
 COST_FILE = os.path.join(os.environ.get("HOME"), "input_jobs_cost.txt")
