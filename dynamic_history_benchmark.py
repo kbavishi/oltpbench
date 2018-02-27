@@ -62,15 +62,8 @@ def run_twitter_benchmark(sched_policy, output_file, csv_file, iterations=11,
                           gedf_factor=0.4, timeout=720,
                           fixed_deadline="false", random_page_cost=4.0):
 
-    # Recalculation should be triggered close to t=7 mins
-    bin_window_threshold = int(7 * 60 * min(arrival_rate, 15) * 0.91)
-
-    generate_twitter_config(sched_policy, pred_history,
-                            arrival_rate=arrival_rate, alpha=alpha,
-                            gedf_factor=gedf_factor, timeout=timeout,
-                            fixed_deadline=fixed_deadline,
-                            random_page_cost=random_page_cost,
-                            bin_window_threshold=bin_window_threshold)
+    # Recalculation should be triggered close to t=5 mins
+    bin_window_threshold = int(5 * 60 * min(arrival_rate, 80) * 0.91)
 
     # We will modify the buffer_stats.txt file and fill it up with weird values
     # before running the test. Later, the dynamic prob calculation should kick
@@ -97,6 +90,39 @@ def run_twitter_benchmark(sched_policy, output_file, csv_file, iterations=11,
         restart_postgres()
         restart_postgres()
 
+        # Warmup by running random FIFO benchmark for 3 mins
+
+        # 1. Move input jobs file to /tmp
+        os.rename(os.path.join(os.environ.get("HOME"), "input_jobs.txt"),
+                  "/tmp/jobs.txt")
+
+        # 2. Generate config
+        generate_twitter_config("fifo", pred_history,
+                                arrival_rate=arrival_rate, alpha=alpha,
+                                gedf_factor=gedf_factor,
+                                fixed_deadline=fixed_deadline,
+                                random_page_cost=random_page_cost,
+                                timeout=180)
+        # 3. Run the random FIFO benchmark
+        output = run_bash_cmd("./oltpbenchmark -b twitter "
+                              "-c config/twitter_config.xml "
+                              "--execute=true --histograms --output %s.%s" %
+                              (csv_file, i))
+        # 4. Remove results and move back input job file
+        os.remove("results/%s.%s.csv" % (csv_file, i))
+        os.rename("/tmp/jobs.txt",
+                  os.path.join(os.environ.get("HOME"), "input_jobs.txt"))
+
+
+        # Now run the actual benchmark
+        generate_twitter_config(sched_policy, pred_history,
+                                arrival_rate=arrival_rate, alpha=alpha,
+                                gedf_factor=gedf_factor,
+                                fixed_deadline=fixed_deadline,
+                                random_page_cost=random_page_cost,
+                                bin_window_threshold=bin_window_threshold,
+                                timeout=600)
+
         output = run_bash_cmd("./oltpbenchmark -b twitter "
                               "-c config/twitter_config.xml "
                               "--execute=true --histograms --output %s.%s" %
@@ -113,8 +139,22 @@ def run_twitter_benchmark(sched_policy, output_file, csv_file, iterations=11,
 def main(arrival_rate, iterations, alpha, gedf_factor, fixed_deadline,
          random_page_cost):
     print "CURRENTLY TESTING: %s, %s, %s" % (arrival_rate, alpha, gedf_factor)
+    run_twitter_benchmark("edf", "output/edf", "edf",
+                          iterations=iterations,
+                          arrival_rate=arrival_rate, alpha=alpha,
+                          gedf_factor=gedf_factor,
+                          fixed_deadline=fixed_deadline,
+                          random_page_cost=random_page_cost)
+
     run_twitter_benchmark("edf_pred_dynamic", "output/edf_pred_dynamic",
                           "edf_pred_dynamic",
+                          iterations=iterations,
+                          arrival_rate=arrival_rate, alpha=alpha,
+                          gedf_factor=gedf_factor,
+                          fixed_deadline=fixed_deadline,
+                          random_page_cost=random_page_cost)
+
+    run_twitter_benchmark("gedf", "output/gedf", "gedf",
                           iterations=iterations,
                           arrival_rate=arrival_rate, alpha=alpha,
                           gedf_factor=gedf_factor,
