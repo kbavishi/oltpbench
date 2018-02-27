@@ -59,16 +59,40 @@ def run_twitter_benchmark(sched_policy, output_file, csv_file, iterations=11,
                           pred_history=0, arrival_rate=75, alpha=0.5,
                           gedf_factor=0.4, fixed_deadline="false",
                           random_page_cost=4.0):
-    generate_twitter_config(sched_policy, pred_history,
-                            arrival_rate=arrival_rate, alpha=alpha,
-                            gedf_factor=gedf_factor,
-                            fixed_deadline=fixed_deadline,
-                            random_page_cost=random_page_cost)
-
     for i in xrange(iterations):
         # Always restart Postgres after each run
         restart_postgres()
         restart_postgres()
+
+        # Warmup by running random FIFO benchmark for 3 mins
+
+        # 1. Move input jobs file to /tmp
+        os.rename(os.path.join(os.environ.get("HOME"), "input_jobs.txt"),
+                  "/tmp/jobs.txt")
+
+        # 2. Generate config
+        generate_twitter_config("fifo", pred_history,
+                                arrival_rate=arrival_rate, alpha=alpha,
+                                gedf_factor=gedf_factor,
+                                fixed_deadline=fixed_deadline,
+                                random_page_cost=random_page_cost)
+        # 3. Run the random FIFO benchmark
+        output = run_bash_cmd("./oltpbenchmark -b twitter "
+                              "-c config/twitter_config.xml "
+                              "--execute=true --histograms --output %s.%s" %
+                              (csv_file, i))
+        # 4. Remove results and move back input job file
+        os.remove("results/%s.%s.csv" % (csv_file, i))
+        os.rename("/tmp/jobs.txt",
+                  os.path.join(os.environ.get("HOME"), "input_jobs.txt"))
+
+
+        # Now run the actual benchmark
+        generate_twitter_config(sched_policy, pred_history,
+                                arrival_rate=arrival_rate, alpha=alpha,
+                                gedf_factor=gedf_factor,
+                                fixed_deadline=fixed_deadline,
+                                random_page_cost=random_page_cost)
 
         output = run_bash_cmd("./oltpbenchmark -b twitter "
                               "-c config/twitter_config.xml "
