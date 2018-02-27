@@ -75,7 +75,8 @@ def run_twitter_benchmark(sched_policy, output_file, csv_file, iterations=11,
                                 arrival_rate=arrival_rate, alpha=alpha,
                                 gedf_factor=gedf_factor,
                                 fixed_deadline=fixed_deadline,
-                                random_page_cost=random_page_cost)
+                                random_page_cost=random_page_cost,
+                                timeout=180)
         # 3. Run the random FIFO benchmark
         output = run_bash_cmd("./oltpbenchmark -b twitter "
                               "-c config/twitter_config.xml "
