@@ -154,23 +154,6 @@ public class WorkloadState {
         phaseIterator = works.iterator();
         createWorkQueue();
         switch (SchedPolicy.valueOf(this.schedPolicy)) {
-            case EDF_PRED_LOC:
-            case GEDF_PRED_LOC:
-                try {
-                    loadTweetsStatsFile();
-                } catch (IOException e) {
-                    LOG.info("Unable to load table stats file");
-                }
-                break;
-            case EDF_PRED_BUF_LOC:
-            case GEDF_PRED_BUF_LOC:
-                try {
-                    loadTweetsStatsFile();
-                    loadBufStatsFile();
-                } catch (IOException e) {
-                    LOG.info("Unable to load table / buffer stats file");
-                }
-                break;
             case EDF_PRED_BUF_LOC_FULL:
             case GEDF_PRED_BUF_LOC_FULL:
                 try {
@@ -262,17 +245,11 @@ public class WorkloadState {
                 workQueue = new LinkedList<SubmittedProcedure>();
                 break;
             case EDF:
-            case EDF_PRED_LOC:
-            case EDF_PRED_LOC_OLD:
-            case EDF_PRED_BUF_LOC:
             case EDF_PRED_BUF_LOC_FULL:
             case EDF_PRED_DYNAMIC:
                 workQueue = new PriorityQueue<SubmittedProcedure>(100, edfComp);
                 break;
             case GEDF:
-            case GEDF_PRED_LOC:
-            case GEDF_PRED_LOC_OLD:
-            case GEDF_PRED_BUF_LOC:
             case GEDF_PRED_BUF_LOC_FULL:
             case GEDF_PRED_DYNAMIC:
                 workQueue = new PriorityQueue<SubmittedProcedure>(100, gedfComp);
@@ -446,6 +423,9 @@ public class WorkloadState {
         LOG.info("Original hit prob for default pred: " + this.tweetsDefaultHitProb);
     }
 
+    public int getPolicy() {
+        return this.schedPolicy;
+    }
     public void resetMisraGries() {
         // Must be called from a synchronized method
         if (this.bins != null) {
@@ -605,10 +585,12 @@ public class WorkloadState {
                 return;
            } else {
                 if (benchmarkState.getState() != State.WARMUP) {
-                    boolean fullBufPLA = ((SchedPolicy.valueOf(this.schedPolicy) ==
-                                           SchedPolicy.EDF_PRED_BUF_LOC_FULL) ||
-                                          (SchedPolicy.valueOf(this.schedPolicy) ==
-                                           SchedPolicy.GEDF_PRED_BUF_LOC_FULL));
+                    boolean isPLA = ((SchedPolicy.valueOf(this.schedPolicy) !=
+                                      SchedPolicy.FIFO) &&
+                                     (SchedPolicy.valueOf(this.schedPolicy) !=
+                                      SchedPolicy.EDF) &&
+                                     (SchedPolicy.valueOf(this.schedPolicy) !=
+                                      SchedPolicy.GEDF));
 
                     // Add the specified number of procedures to the end of the queue.
                     for (int i = 0; i < amount; ++i) {
@@ -622,7 +604,7 @@ public class WorkloadState {
                         double cost = (double) proc[2];
                         ArrayList<Long> pred = (ArrayList<Long>) proc[3];
 
-                        if (fullBufPLA == true && pred == null) {
+                        if (isPLA) {
                             // For Query type 2, we have to look at the
                             // individual predicates to find out the reduction.
                             // For everything else, it is quite simple
@@ -634,6 +616,30 @@ public class WorkloadState {
                                 // Just 1 disk I/O
                                 sel = 1;
                                 reduction = (sel * 1 * hitRate * RANDOM_PAGE_COST);
+                            } else if (type == 2) {
+                                // Need to reduce cost based on predicates
+                                if (pred != null) {
+                                    Iterator it = pred.iterator();
+                                    while (it.hasNext()) {
+                                        Long predUid = (Long) it.next();
+                                        // We need to use the buffer pool hit
+                                        // probability estimates
+                                        hitRate = tweetsHitProbMap.getOrDefault(predUid,
+                                                tweetsDefaultHitProb);
+                                        sel = tweetRelFreqMap.getOrDefault(predUid,
+                                                tweetsDefaultSelectivity);
+                                        reduction += (sel * tweetRelTuples *
+                                                      hitRate * RANDOM_PAGE_COST);
+                                    }
+                                }
+
+                                // Also need to discount for the initial
+                                // checking of followers table
+                                hitRate = this.followsDefaultHitProb;
+                                sel = followsRelFreqMap.getOrDefault(num,
+                                        followsDefaultSelectivity);
+                                reduction += (Math.min(100, sel * followsRelTuples) *
+                                              hitRate * RANDOM_PAGE_COST);
                             } else if (type == 3) {
                                 // GetFollowers info
                                 // First, we find the followers
@@ -664,72 +670,6 @@ public class WorkloadState {
                             }
                             cost -= reduction;
 
-                        } else if (pred != null && RESULTS_QUEUE_LIMIT != 0) {
-                            // Check if we ran some query in the past with similar predicates
-                            Iterator it = pred.iterator();
-                            double reduction = 0.0;
-                            HashMap<Long, Boolean> map;
-
-                            boolean oldPLA = ((SchedPolicy.valueOf(this.schedPolicy) ==
-                                               SchedPolicy.EDF_PRED_LOC_OLD) ||
-                                              (SchedPolicy.valueOf(this.schedPolicy) ==
-                                               SchedPolicy.GEDF_PRED_LOC_OLD));
-
-                            // Iterate over all the predicate values
-                            while (it.hasNext()) {
-                                Long predUid = (Long) it.next();
-
-                                int count = resultsUnion.getOrDefault(predUid, 0);
-                                if (count != 0) {
-                                    double hitRate = count * 1.0 / resultsQueue.size();
-                                    double sel = tweetRelFreqMap.getOrDefault(predUid,
-                                            tweetsDefaultSelectivity);
-                                    if (oldPLA) {
-                                        // Reduction is roughly 599.95 per
-                                        // predicate. We reduce by close to 50%
-                                        reduction += 1500.0;
-                                    } else {
-                                        // We start with an initial frequency
-                                        // corresponding to the relative
-                                        // popularity of the predicate
-                                        reduction += (sel * tweetRelTuples *
-                                                      hitRate * RANDOM_PAGE_COST);
-                                    }
-                                }
-                            }
-                            if (reduction > cost) {
-                                LOG.info("KB Malfunction: " + type + ", " + num + ", " + cost + ", " + reduction);
-                            }
-                            cost -= reduction;
-                        } else if (pred != null) {
-                            // Common for both fullBufPLA and BufPLA
-                            Iterator it = pred.iterator();
-                            double hitRate, sel, reduction = 0.0;
-                            while (it.hasNext()) {
-                                Long predUid = (Long) it.next();
-                                // We need to use the buffer pool hit
-                                // probability estimates
-                                hitRate = tweetsHitProbMap.getOrDefault(predUid,
-                                        tweetsDefaultHitProb);
-                                sel = tweetRelFreqMap.getOrDefault(predUid,
-                                        tweetsDefaultSelectivity);
-                                reduction += (sel * tweetRelTuples *
-                                              hitRate * RANDOM_PAGE_COST);
-                            }
-
-                            if (fullBufPLA) {
-                                // Also need to discount for the initial
-                                // checking of followers table
-                                hitRate = this.followsDefaultHitProb;
-                                sel = followsRelFreqMap.getOrDefault(num,
-                                        followsDefaultSelectivity);
-                                reduction += (Math.min(100, sel * followsRelTuples) *
-                                              hitRate * RANDOM_PAGE_COST);
-                            }
-                            if (reduction > cost) {
-                                LOG.info("KB Malfunction: " + type + ", " + num + ", " + cost + ", " + reduction);
-                            }
-                            cost -= reduction;
                         }
 
                         // Convert cost into some form of deadline, so we can simulate EDF
@@ -945,42 +885,6 @@ public class WorkloadState {
                 SchedPolicy.GEDF_PRED_DYNAMIC)) {
             // Just update the Misra-Gries bins
             updateBins(results);
-            return;
-        }
-
-        if (RESULTS_QUEUE_LIMIT == 0) {
-            // We don't need to store results. Return
-            return;
-        }
-        Iterator it = results.iterator();
-        LinkedList<Long> predicates = new LinkedList<Long>();
-
-        synchronized (this) {
-            while (it.hasNext()) {
-                Long nextElem = (Long) it.next();
-                predicates.add(nextElem);
-                Integer prevValue = resultsUnion.get(nextElem);
-                resultsUnion.put(nextElem, prevValue == null ? 1 : prevValue + 1);
-            }
-            resultsQueue.add(predicates);
-
-            // Need to remove older result predicates
-            while (resultsQueue.size() > RESULTS_QUEUE_LIMIT) {
-                predicates = resultsQueue.remove();
-                it = predicates.iterator();
-
-                // Also update results union by decrementing or removing
-                // predicate counters
-                while (it.hasNext()) {
-                    Long nextElem = (Long) it.next();
-                    Integer prevValue = resultsUnion.get(nextElem);
-                    if (prevValue == 1) {
-                        resultsUnion.remove(nextElem);
-                    } else {
-                        resultsUnion.put(nextElem, prevValue - 1);
-                    }
-                }
-            }
         }
     }
 

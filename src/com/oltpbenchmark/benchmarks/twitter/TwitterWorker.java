@@ -110,12 +110,12 @@ public class TwitterWorker extends Worker<TwitterBenchmark> {
     public void doSelectTweetsFromPplIFollow(int uid) throws SQLException {
         GetTweetsFromFollowing proc = this.getProcedure(GetTweetsFromFollowing.class);
         assert (proc != null);
-        proc.run(conn, uid);
-	if (proc.results != null) {
-	    this.results = proc.results;
-	} else {
-	    this.results = null;
-	}
+        proc.run(conn, uid, this.storeResults);
+        if (proc.results != null) {
+            this.results = proc.results;
+        } else {
+            this.results = null;
+        }
     }
 
     public void doSelectNamesOfPplThatFollowMe(int uid) throws SQLException {

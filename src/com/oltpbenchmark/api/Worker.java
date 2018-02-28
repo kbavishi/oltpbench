@@ -37,6 +37,7 @@ import com.oltpbenchmark.WorkloadState;
 import com.oltpbenchmark.api.Procedure.UserAbortException;
 import com.oltpbenchmark.catalog.Catalog;
 import com.oltpbenchmark.types.DatabaseType;
+import com.oltpbenchmark.types.SchedPolicy;
 import com.oltpbenchmark.types.State;
 import com.oltpbenchmark.types.TransactionStatus;
 import com.oltpbenchmark.util.Histogram;
@@ -71,6 +72,7 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
 
     /* Use this to store results if you wish */
     public ArrayList<Object> results;
+    public boolean storeResults = false;
 
     public Worker(T benchmarkModule, int id) {
         this.id = id;
@@ -99,6 +101,12 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
             this.class_procedures.put(proc.getClass(), proc);
             // e.getValue().generateAllPreparedStatements(this.conn);
         } // FOR
+
+        int policy = this.wrkldState.getPolicy();
+        if ((SchedPolicy.valueOf(policy) == SchedPolicy.EDF_PRED_DYNAMIC) ||
+            (SchedPolicy.valueOf(policy) == SchedPolicy.GEDF_PRED_DYNAMIC)) {
+            storeResults = true;
+        }
     }
 
     /**

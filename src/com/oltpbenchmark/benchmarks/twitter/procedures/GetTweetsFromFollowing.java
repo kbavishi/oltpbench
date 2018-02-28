@@ -41,40 +41,43 @@ public class GetTweetsFromFollowing extends Procedure {
         " WHERE uid IN (??)", TwitterConstants.LIMIT_FOLLOWERS
     );
     
-    public void run(Connection conn, int uid) throws SQLException {
+    public void run(Connection conn, int uid, boolean storeResults) throws SQLException {
         PreparedStatement stmt = this.getPreparedStatement(conn, getFollowing);
         stmt.setLong(1, uid);
         ResultSet rs = stmt.executeQuery();
-	ArrayList<Long> following = new ArrayList<Long>(TwitterConstants.LIMIT_FOLLOWERS);
-	ArrayList<Object> res = new ArrayList<Object>(TwitterConstants.LIMIT_FOLLOWERS);
-	while (rs.next()) {
-	    following.add(rs.getLong(1));
-	}
+
+        ArrayList<Long> following = new ArrayList<Long>(TwitterConstants.LIMIT_FOLLOWERS);
+        while (rs.next()) {
+            following.add(rs.getLong(1));
+        }
         
         SQLStmt getTweetsCompact = new SQLStmt(
             "SELECT * FROM " + TwitterConstants.TABLENAME_TWEETS +
             " WHERE uid IN (??)", following.size()
         );
         stmt = this.getPreparedStatement(conn, getTweetsCompact);
-	Iterator it = following.iterator();
+        Iterator it = following.iterator();
         int ctr = 0;
+
+        ArrayList<Object> res = new ArrayList<Object>(TwitterConstants.LIMIT_FOLLOWERS);
         while (it.hasNext()) {
-	    ctr++;
-	    Long nextElem = (Long) it.next();
+            ctr++;
+            Long nextElem = (Long) it.next();
             stmt.setLong(ctr, nextElem.longValue());
-	    res.add(nextElem);
-            
+            if (storeResults) {
+                res.add(nextElem);
+            }
         } // WHILE
         rs.close();
 
         if (ctr > 0) {
-	    this.results = res;
+            if (storeResults) {
+                this.results = res;
+            }
             rs = stmt.executeQuery();
             rs.close();
-        }
-        else 
-        {
-	    this.results = null;
+        } else {
+            this.results = null;
             // LOG.debug("No followers for user: "+uid); // so what .. ?
         }
     }
