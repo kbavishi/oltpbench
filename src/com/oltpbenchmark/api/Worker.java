@@ -102,10 +102,12 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
             // e.getValue().generateAllPreparedStatements(this.conn);
         } // FOR
 
-        int policy = this.wrkldState.getPolicy();
-        if ((SchedPolicy.valueOf(policy) == SchedPolicy.EDF_PRED_DYNAMIC) ||
-            (SchedPolicy.valueOf(policy) == SchedPolicy.GEDF_PRED_DYNAMIC)) {
-            storeResults = true;
+        if (this.wrkldState != null) {
+            int policy = this.wrkldState.getPolicy();
+            if ((SchedPolicy.valueOf(policy) == SchedPolicy.EDF_PRED_DYNAMIC) ||
+                (SchedPolicy.valueOf(policy) == SchedPolicy.GEDF_PRED_DYNAMIC)) {
+                storeResults = true;
+            }
         }
     }
 
@@ -604,5 +606,10 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
     public void initializeState() {
         assert (this.wrkldState == null);
         this.wrkldState = this.wrkld.getWorkloadState();
+        int policy = this.wrkldState.getPolicy();
+        if ((SchedPolicy.valueOf(policy) == SchedPolicy.EDF_PRED_DYNAMIC) ||
+            (SchedPolicy.valueOf(policy) == SchedPolicy.GEDF_PRED_DYNAMIC)) {
+            storeResults = true;
+        }
     }
 }
