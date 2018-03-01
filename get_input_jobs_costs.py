@@ -10,7 +10,6 @@ LIMIT_FOLLOWERS = 400
 LIMIT_TWEETS_FOR_UID = 10
 
 COST_FILE = os.path.join(os.environ.get("HOME"), "input_jobs_cost.txt")
-COST_LOC_FILE = os.path.join(os.environ.get("HOME"), "input_jobs_loc_cost.txt")
 
 def get_plan_cost(output):
     for line in output.split("\n"):
@@ -48,7 +47,7 @@ def get_tweets_from_following(cur, uid):
         output = cur.fetchall()
         cost += get_plan_cost(output[0][0])
 
-    return cost, ",".join(uid_list)
+    return cost
 
 def get_followers(cur, uid):
     cost = 0
@@ -100,17 +99,17 @@ def restart_postgres():
 
 def run_transaction(cur, trans_type, num):
     if trans_type == 1:
-        return get_tweet(cur, num), None
+        return get_tweet(cur, num)
     elif trans_type == 2:
         return get_tweets_from_following(cur, num)
     elif trans_type == 3:
-        return get_followers(cur, num), None
+        return get_followers(cur, num)
     elif trans_type == 4:
-        return get_user_tweets(cur, num), None
+        return get_user_tweets(cur, num)
     elif trans_type == 5:
         #return insert_tweet(num)
         # XXX - What to do with insertTweet?
-        return 100.0, None
+        return 100.0
     else:
         assert False, "Unknown transaction type: %s" % trans_type
 
@@ -121,17 +120,15 @@ def read_input_file(cur, limit=2000000):
     line = f.readline()
 
     f_cost = open(COST_FILE, "w")
-    f_loc_cost = open(COST_LOC_FILE, "w")
 
     while line and count < limit:
         count += 1
         if count > limit: break
 
         trans_type, num = map(int, line.split(","))
-        cost, extra = run_transaction(cur, trans_type, num)
+        cost = run_transaction(cur, trans_type, num)
 
         f_cost.write("%s,%s,%s\n" % (trans_type, num, cost))
-        f_loc_cost.write("%s,%s,%s,%s\n" % (trans_type, num, cost, extra))
 
         line = f.readline()
 

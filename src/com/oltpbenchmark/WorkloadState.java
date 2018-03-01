@@ -182,7 +182,26 @@ public class WorkloadState {
                 }
                 break;
         }
-
+        switch (SchedPolicy.valueOf(this.schedPolicy)) {
+            case EDF:
+            case GEDF:
+                costSlope.put(1, 250335.08);
+                costSlope.put(2, 106.07);
+                costSlope.put(3, 6989.75);
+                costSlope.put(4, 271463.75);
+                costSlope.put(5, 13819.80);
+                break;
+            case EDF_PRED_BUF_LOC_FULL:
+            case GEDF_PRED_BUF_LOC_FULL:
+            case EDF_PRED_DYNAMIC:
+            case GEDF_PRED_DYNAMIC:
+                costSlope.put(1, 110524.0);
+                costSlope.put(2, 74.14);
+                costSlope.put(3, 12666.24);
+                costSlope.put(4, 206197.40);
+                costSlope.put(5, 277487.85);
+                break;
+        }
     }
 
     // EDF Comparator anonymous class implementation
