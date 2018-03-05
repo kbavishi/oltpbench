@@ -434,7 +434,7 @@ public class WorkloadState {
             // Update popular tweet set sizes
             int size = Integer.parseInt(array[1]);
             double freq =  size * 1.0 / tweetRelTuples;
-            this.tweetsRelFreqMap.put(pred_uid, freq);
+            this.tweetsRelFreqMap.put((int)pred_uid, freq);
             this.tweetsDefaultSelectivity -= freq;
 
             // Update hit probability
@@ -686,7 +686,7 @@ public class WorkloadState {
                                 // GetTweetsForUser
                                 hitRate = this.tweetsHitProbMap.getOrDefault(num,
                                         tweetsDefaultHitProb);
-                                sel = tweestRelFreqMap.getOrDefault(num,
+                                sel = tweetsRelFreqMap.getOrDefault(num,
                                         tweetsDefaultSelectivity);
                                 reduction += (Math.min(10.0, sel * tweetRelTuples) *
                                               hitRate * RANDOM_PAGE_COST);
