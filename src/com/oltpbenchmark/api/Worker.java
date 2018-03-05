@@ -369,7 +369,7 @@ public abstract class Worker<T extends BenchmarkModule> implements Runnable {
             }
             wrkldState.finishedWork();
         }
-
+        wrkldState.printAlpha();
         tearDown(false);
     }
 

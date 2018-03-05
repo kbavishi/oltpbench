@@ -56,14 +56,19 @@ public class TwitterWorker extends Worker<TwitterBenchmark> {
         t.uid = this.rng().nextInt(this.num_users); // HACK
         
         if (nextTrans.getProcedureClass().equals(GetTweet.class)) {
+            conn.setReadOnly(true);
             doSelect1Tweet(t.tweetid);
         } else if (nextTrans.getProcedureClass().equals(GetTweetsFromFollowing.class)) {
+            conn.setReadOnly(true);
             doSelectTweetsFromPplIFollow(t.uid);
         } else if (nextTrans.getProcedureClass().equals(GetFollowers.class)) {
+            conn.setReadOnly(true);
             doSelectNamesOfPplThatFollowMe(t.uid);
         } else if (nextTrans.getProcedureClass().equals(GetUserTweets.class)) {
+            conn.setReadOnly(true);
             doSelectTweetsForUid(t.uid);
         } else if (nextTrans.getProcedureClass().equals(InsertTweet.class)) {
+            conn.setReadOnly(false);
             int len = this.tweet_len_rng.nextValue().intValue();
             String text = TextGenerator.randomStr(this.rng(), len);
             doInsertTweet(t.uid, text);

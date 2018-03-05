@@ -9,9 +9,12 @@ from collections import namedtuple
 
 LIMIT_FOLLOWERS = 400
 LIMIT_TWEETS_FOR_UID = 10
+NUM_USERS = 500
+SCALE_FACTOR = 380
+
+Cs, Cr, Ct, Ci, Co = 1.0, 18.73, 0.0017, 0.0014, 0.0002
 
 stats = {}
-Cs, Cr, Ct, Ci, Co = 1.0, 18.73, 0.0017, 0.0014, 0.0002
 Stats = namedtuple("Stats", ["relpages", "reltuples", "n_distinct",
                              "most_common_freqs", "sum_mcf", "tree_level"])
 
@@ -148,6 +151,8 @@ def create_table_stats_file(cur, table_name, attr_name=None, index_name=None):
         cur.execute("SELECT n_distinct, most_common_vals, most_common_freqs FROM pg_stats "
                     "WHERE tablename='%s' AND attname='%s'" % (table_name, attr_name))
         n_distinct, most_common_vals, most_common_freqs = cur.fetchone()
+        if table_name == "tweets":
+            n_distinct = SCALE_FACTOR * NUM_USERS
 
     if not most_common_vals:
         most_common_vals = ""

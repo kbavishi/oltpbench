@@ -93,7 +93,7 @@ public class WorkloadState {
     private int tweetRelTuples;
     private int tweetRelNDistinct;
     private double tweetsDefaultSelectivity = 0.0;
-    private HashMap<Integer, Double> tweetRelFreqMap = new HashMap<Integer, Double>();
+    private HashMap<Integer, Double> tweetsRelFreqMap = new HashMap<Integer, Double>();
     private HashMap<Long, Double> tweetsHitProbMap = new HashMap<Long, Double>();
     private double tweetsDefaultHitProb;
     
@@ -301,11 +301,11 @@ public class WorkloadState {
         double tweetsSumFreq = 0.0;
         for (int i=0; i<mc_vals.length; i++) {
             tweetsSumFreq += Double.parseDouble(mc_freqs[i]);
-            this.tweetRelFreqMap.put(Integer.parseInt(mc_vals[i]),
-                                     Double.parseDouble(mc_freqs[i]));
+            this.tweetsRelFreqMap.put(Integer.parseInt(mc_vals[i]),
+                                      Double.parseDouble(mc_freqs[i]));
         }
         this.tweetsDefaultSelectivity = (1 - tweetsSumFreq) /
-            (this.tweetRelNDistinct - tweetRelFreqMap.size());
+            (this.tweetRelNDistinct - this.tweetsRelFreqMap.size());
     }
 
     private void loadFollowsStatsFile() throws IOException {
@@ -430,9 +430,19 @@ public class WorkloadState {
         while (nextLine != null) {
             String[] array = nextLine.split(" ", 2);
             pred_uid = Long.parseLong(array[0]);
-            double hit_prob = Double.parseDouble(array[1]);
+
+            // Update popular tweet set sizes
+            int size = Integer.parseInt(array[1]);
+            double freq =  size * 1.0 / tweetRelTuples;
+            this.tweetsRelFreqMap.put(pred_uid, freq);
+            this.tweetsDefaultSelectivity -= freq;
+
+            // Update hit probability
+            double hit_prob = Double.parseDouble(array[2]);
             this.tweetsHitProbMap.put(pred_uid, hit_prob);
+
             LOG.info("Original hit prob for pred " + pred_uid + ": " + hit_prob);
+            LOG.info("Set size for pred " + pred_uid + ": " + size + ", " + freq);
             nextLine = bufferStats.readLine();
         }
 
@@ -544,7 +554,7 @@ public class WorkloadState {
 
             // Calculate partition size
             // Assume simple part size calculation
-            int size = (int) (tweetRelFreqMap.getOrDefault(preds[idx],
+            int size = (int) (tweetsRelFreqMap.getOrDefault(preds[idx],
                             tweetsDefaultSelectivity) * tweetRelTuples);
             partition_sizes[idx] = size;
             popular_preds_sizes += size;
@@ -645,7 +655,7 @@ public class WorkloadState {
                                         // probability estimates
                                         hitRate = tweetsHitProbMap.getOrDefault(predUid,
                                                 tweetsDefaultHitProb);
-                                        sel = tweetRelFreqMap.getOrDefault(predUid,
+                                        sel = tweetsRelFreqMap.getOrDefault(predUid,
                                                 tweetsDefaultSelectivity);
                                         reduction += (sel * tweetRelTuples *
                                                       hitRate * RANDOM_PAGE_COST);
@@ -676,7 +686,7 @@ public class WorkloadState {
                                 // GetTweetsForUser
                                 hitRate = this.tweetsHitProbMap.getOrDefault(num,
                                         tweetsDefaultHitProb);
-                                sel = tweetRelFreqMap.getOrDefault(num,
+                                sel = tweestRelFreqMap.getOrDefault(num,
                                         tweetsDefaultSelectivity);
                                 reduction += (Math.min(10.0, sel * tweetRelTuples) *
                                               hitRate * RANDOM_PAGE_COST);
@@ -915,6 +925,15 @@ public class WorkloadState {
         return droppedTransactionUsecs;
     }
 
+    public void printAlpha() {
+        synchronized (this) {
+            System.out.println("ALPHA 1: " + costSlope.get(1));
+            System.out.println("ALPHA 2: " + costSlope.get(2));
+            System.out.println("ALPHA 3: " + costSlope.get(3));
+            System.out.println("ALPHA 4: " + costSlope.get(4));
+            System.out.println("ALPHA 5: " + costSlope.get(5));
+        }
+    }
     public void finishedWork() {
         synchronized (this) {
             assert workersWorking > 0;
