@@ -437,7 +437,7 @@ public class WorkloadState {
             int size = Integer.parseInt(array[1]);
             freq =  size * 1.0 / tweetRelTuples;
             this.tweetsRelFreqMap.put((int)pred_uid, freq);
-            this.tweetsDefaultSelectivity -= freq;
+            this.tweetsDefaultSelectivity -= freq / this.tweetRelNDistinct;
 
             // Update hit probability
             double hit_prob = Double.parseDouble(array[2]);
@@ -451,7 +451,7 @@ public class WorkloadState {
         // We reached the end. We need to remove the last entry and use that as
         // default hit prob
         this.tweetsDefaultHitProb = this.tweetsHitProbMap.remove(pred_uid);
-        this.tweetsDefaultSelectivity += freq;
+        this.tweetsDefaultSelectivity += freq / this.tweetRelNDistinct;
         LOG.info("Original hit prob for default pred: " + this.tweetsDefaultHitProb);
         LOG.info("Final default sel: " + this.tweetsDefaultSelectivity);
     }
