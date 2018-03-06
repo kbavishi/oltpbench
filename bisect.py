@@ -182,7 +182,7 @@ if __name__ == '__main__':
         if i>=4:
             # For the popular tweets partitions, print the predicate, set size
             # and the probability
-            f.write("%s %s %s\n" % (i+1, sp_vals[i], hit_prob))
+            f.write("%s %s %s\n" % (i-3, sp_vals[i], hit_prob))
         else:
             # For the initial table partitions, just print the probability
             f.write("%s\n" % hit_prob)

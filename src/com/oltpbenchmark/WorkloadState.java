@@ -427,13 +427,15 @@ public class WorkloadState {
         // Now start the partitions of tweets by the post popular users
         nextLine = bufferStats.readLine();
         long pred_uid = 0;
+        double freq = 0.0;
+        LOG.info("Original default sel: " + this.tweetsDefaultSelectivity);
         while (nextLine != null) {
-            String[] array = nextLine.split(" ", 2);
+            String[] array = nextLine.split(" ", 3);
             pred_uid = Long.parseLong(array[0]);
 
             // Update popular tweet set sizes
             int size = Integer.parseInt(array[1]);
-            double freq =  size * 1.0 / tweetRelTuples;
+            freq =  size * 1.0 / tweetRelTuples;
             this.tweetsRelFreqMap.put((int)pred_uid, freq);
             this.tweetsDefaultSelectivity -= freq;
 
@@ -449,7 +451,9 @@ public class WorkloadState {
         // We reached the end. We need to remove the last entry and use that as
         // default hit prob
         this.tweetsDefaultHitProb = this.tweetsHitProbMap.remove(pred_uid);
+        this.tweetsDefaultSelectivity += freq;
         LOG.info("Original hit prob for default pred: " + this.tweetsDefaultHitProb);
+        LOG.info("Final default sel: " + this.tweetsDefaultSelectivity);
     }
 
     public int getPolicy() {
