@@ -67,8 +67,10 @@ def run_twitter_benchmark(sched_policy, output_file, csv_file, iterations=11,
         # Warmup by running random FIFO benchmark for 3 mins
 
         # 1. Move input jobs file to /tmp
-        os.rename(os.path.join(os.environ.get("HOME"), "input_jobs.txt"),
-                  "/tmp/jobs.txt")
+        filepath = os.path.join(os.environ.get("HOME"), "input_jobs.txt")
+        os.rename(filepath, "/tmp/jobs.txt")
+        shutil.copyfile(os.path.join(os.environ.get("HOME"), "random_jobs.txt"),
+                        filepath)
 
         # 2. Generate config
         generate_twitter_config("fifo", pred_history,

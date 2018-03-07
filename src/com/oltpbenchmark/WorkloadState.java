@@ -127,6 +127,8 @@ public class WorkloadState {
     private int binWindowSize = 0;
     private int unpopularPredicates = 0;
 
+    private boolean printed = false;
+
     public WorkloadState(BenchmarkState benchmarkState, List<Phase> works, int num_terminals,
             int schedPolicy, double alpha, double gedfFactor, int predResultsHistory,
             double randomPageCost, boolean fixedDeadline,
@@ -428,7 +430,6 @@ public class WorkloadState {
         nextLine = bufferStats.readLine();
         long pred_uid = 0;
         double freq = 0.0;
-        LOG.info("Original default sel: " + this.tweetsDefaultSelectivity);
         while (nextLine != null) {
             String[] array = nextLine.split(" ", 3);
             pred_uid = Long.parseLong(array[0]);
@@ -443,8 +444,6 @@ public class WorkloadState {
             double hit_prob = Double.parseDouble(array[2]);
             this.tweetsHitProbMap.put(pred_uid, hit_prob);
 
-            LOG.info("Original hit prob for pred " + pred_uid + ": " + hit_prob);
-            LOG.info("Set size for pred " + pred_uid + ": " + size + ", " + freq);
             nextLine = bufferStats.readLine();
         }
 
@@ -452,8 +451,6 @@ public class WorkloadState {
         // default hit prob
         this.tweetsDefaultHitProb = this.tweetsHitProbMap.remove(pred_uid);
         this.tweetsDefaultSelectivity += freq / this.tweetRelNDistinct;
-        LOG.info("Original hit prob for default pred: " + this.tweetsDefaultHitProb);
-        LOG.info("Final default sel: " + this.tweetsDefaultSelectivity);
     }
 
     public int getPolicy() {
@@ -931,11 +928,15 @@ public class WorkloadState {
 
     public void printAlpha() {
         synchronized (this) {
+            if (printed) {
+                return;
+            }
             System.out.println("ALPHA 1: " + costSlope.get(1));
             System.out.println("ALPHA 2: " + costSlope.get(2));
             System.out.println("ALPHA 3: " + costSlope.get(3));
             System.out.println("ALPHA 4: " + costSlope.get(4));
             System.out.println("ALPHA 5: " + costSlope.get(5));
+            this.printed = true;
         }
     }
     public void finishedWork() {
