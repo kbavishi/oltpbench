@@ -172,6 +172,17 @@ def create_table_stats_file(cur, table_name, attr_name=None, index_name=None):
         mcf[mcv[i]] = most_common_freqs[i]
         sum_mcf += most_common_freqs[i]
 
+    if table_name == "tweets":
+        # Also update info related to popular predicates
+        filepath = os.path.join(os.environ.get("HOME"), "buffer_stats.txt")
+        lines = open(filepath, "r").readlines()
+        lines = lines[4:]
+        for line in lines:
+            uid, size, _ = map(int, line.split())
+            freq = size * 1.0 / reltuples
+            mcf[uid] = freq
+            sum_mcf += freq
+
     stats[table_name] = Stats(relpages, reltuples, n_distinct,
                               mcf, sum_mcf, tree_level)
     if most_common_freqs:
