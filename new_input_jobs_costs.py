@@ -176,7 +176,7 @@ def create_tweets_stats_file(cur):
     lines = open(filepath, "r").readlines()
     lines = lines[4:]
     for line in lines:
-        uid, size, _ = map(int, line.split())
+        uid, size = map(int, line.split())
         freq = size * 1.0 / reltuples
         mcf[uid] = freq
         sum_mcf += freq
