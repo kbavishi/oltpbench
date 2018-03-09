@@ -179,6 +179,9 @@ def create_tweets_stats_file(cur):
     # Also update info related to popular predicates
     filepath = os.path.join(os.environ.get("HOME"), "buffer_stats.txt")
     lines = open(filepath, "r").readlines()
+    # Ignore last line about unpopular partitions
+    lines = lines[:-1]
+    # Ignore first four lines about other unrelated partitions
     lines = lines[4:]
     for line in lines:
         uid, size = map(int, line.split()[:2])

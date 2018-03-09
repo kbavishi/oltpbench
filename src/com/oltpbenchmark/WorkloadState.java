@@ -449,9 +449,9 @@ public class WorkloadState {
         }
 
         // We reached the end. We need to remove the last entry and use that as
-        // default hit prob
+        // default hit prob and default selectivity
         this.tweetsDefaultHitProb = this.tweetsHitProbMap.remove(pred_uid);
-        this.tweetsDefaultSelectivity += freq / this.tweetRelNDistinct;
+        this.tweetsDefaultSelectivity = this.tweetsRelFreqMap.remove(pred_uid);
     }
 
     public int getPolicy() {
