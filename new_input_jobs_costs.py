@@ -11,6 +11,7 @@ LIMIT_FOLLOWERS = 400
 LIMIT_TWEETS_FOR_UID = 10
 NUM_USERS = 500
 SCALE_FACTOR = 380
+TF_FACTOR = 4
 
 Cs, Cr, Ct, Ci, Co = 1.0, 18.73, 0.0017, 0.0014, 0.0002
 
@@ -141,6 +142,54 @@ def read_input_file(cur, limit=2000000, print_pred=False):
 
         line = f.readline()
 
+def create_tweets_stats_file(cur):
+    cur.execute("SELECT relpages FROM pg_class WHERE relname = 'tweets'")
+    relpages = cur.fetchone()
+
+    cur.execute("SELECT COUNT(*) FROM user_profiles")
+    n_distinct = cur.fetchone()
+
+    cur.execute("SELECT COUNT(*) FROM tweets")
+    reltuples = cur.fetchone()
+    avg_tweets = reltuples * 1.0 / n_distinct
+
+    cur.execute("SELECT uid, COUNT(*) FROM tweets "
+                "GROUP BY uid HAVING COUNT(*) > %s" % TF_FACTOR * avg_tweets)
+    results = cur.fetchall()
+
+    # Update in-memory information
+    mcf = {}
+    sum_mcf = 0.0
+    for uid, count in results:
+        freq = count * 1.0 / reltuples
+        mcf[uid] = freq
+        sum_mcf += freq
+
+    most_common_vals = ",".join(map(str, mcf.keys()))
+    most_common_freqs = ",".join(map(str, mcf.values()))
+
+    cur.execute("SELECT tree_level FROM pgstatindex('idx_tweets_uid')")
+    tree_level = int(cur.fetchone()[0])
+
+    # Also update info related to popular predicates
+    filepath = os.path.join(os.environ.get("HOME"), "buffer_stats.txt")
+    lines = open(filepath, "r").readlines()
+    lines = lines[4:]
+    for line in lines:
+        uid, size, _ = map(int, line.split())
+        freq = size * 1.0 / reltuples
+        mcf[uid] = freq
+        sum_mcf += freq
+
+    stats["tweets"] = Stats(relpages, reltuples, n_distinct,
+                            mcf, sum_mcf, tree_level)
+    filename = os.path.join(os.getenv("HOME"), "tweets_stats.txt")
+    with open(filename, "w") as f:
+        f.write("%s,%s\n" % (int(relpages), int(reltuples)))
+        f.write("%s\n" % int(n_distinct))
+        f.write("%s\n" % most_common_vals)
+        f.write("%s" % most_common_freqs)
+
 def create_table_stats_file(cur, table_name, attr_name=None, index_name=None):
     cur.execute("SELECT relpages, reltuples FROM pg_class WHERE relname = '%s'"
                 % table_name)
@@ -208,7 +257,7 @@ if __name__ == '__main__':
     cur = conn.cursor()
     cur.execute("CREATE EXTENSION pgstattuple")
     cur.execute("ANALYZE")
-    create_table_stats_file(cur, "tweets", "uid", "idx_tweets_uid")
+    create_tweets_stats_file(cur)
     create_table_stats_file(cur, "follows", "f1", "follows_pkey")
     create_table_stats_file(cur, "followers", "f1", "followers_pkey")
     create_table_stats_file(cur, "user_profiles", "uid", "user_profiles_pkey")
