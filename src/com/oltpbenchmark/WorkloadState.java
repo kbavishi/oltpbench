@@ -94,7 +94,7 @@ public class WorkloadState {
     private int tweetRelTuples;
     private int tweetRelNDistinct;
     private double tweetsDefaultSelectivity = 0.0;
-    private HashMap<Integer, Double> tweetsRelFreqMap = new HashMap<Integer, Double>();
+    private HashMap<Long, Double> tweetsRelFreqMap = new HashMap<Long, Double>();
     private HashMap<Long, Double> tweetsHitProbMap = new HashMap<Long, Double>();
     private double tweetsDefaultHitProb;
     
@@ -304,7 +304,7 @@ public class WorkloadState {
         double tweetsSumFreq = 0.0;
         for (int i=0; i<mc_vals.length; i++) {
             tweetsSumFreq += Double.parseDouble(mc_freqs[i]);
-            this.tweetsRelFreqMap.put(Integer.parseInt(mc_vals[i]),
+            this.tweetsRelFreqMap.put(Long.parseLong(mc_vals[i]),
                                       Double.parseDouble(mc_freqs[i]));
         }
         this.tweetsDefaultSelectivity = (1 - tweetsSumFreq) /
@@ -438,7 +438,7 @@ public class WorkloadState {
             // Update popular tweet set sizes
             int size = Integer.parseInt(array[1]);
             freq =  size * 1.0 / tweetRelTuples;
-            this.tweetsRelFreqMap.put((int)pred_uid, freq);
+            this.tweetsRelFreqMap.put(pred_uid, freq);
             this.tweetsDefaultSelectivity -= freq / this.tweetRelNDistinct;
 
             // Update hit probability
