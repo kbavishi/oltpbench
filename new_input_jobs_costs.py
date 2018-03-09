@@ -227,7 +227,7 @@ def create_table_stats_file(cur, table_name, attr_name=None, index_name=None):
         lines = open(filepath, "r").readlines()
         lines = lines[4:]
         for line in lines:
-            uid, size, _ = map(int, line.split())
+            uid, size, _ = map(int, line.split()[2])
             freq = size * 1.0 / reltuples
             mcf[uid] = freq
             sum_mcf += freq
