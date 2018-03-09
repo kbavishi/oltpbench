@@ -34,6 +34,7 @@ import java.util.Queue;
 import java.util.TreeSet;
 import java.util.NoSuchElementException;
 
+import com.oltpbenchmark.benchmarks.twitter.TwitterConstants;
 import com.oltpbenchmark.types.SchedPolicy;
 import com.oltpbenchmark.types.State;
 import com.oltpbenchmark.util.QueueLimitException;
@@ -668,7 +669,8 @@ public class WorkloadState {
                                 hitRate = this.followsDefaultHitProb;
                                 sel = followsRelFreqMap.getOrDefault(num,
                                         followsDefaultSelectivity);
-                                reduction += (Math.min(100, sel * followsRelTuples) *
+                                reduction += (Math.min(TwitterConstants.LIMIT_FOLLOWERS,
+                                                       sel * followsRelTuples) *
                                               hitRate * RANDOM_PAGE_COST);
                             } else if (type == 3) {
                                 // GetFollowers info
@@ -676,20 +678,23 @@ public class WorkloadState {
                                 hitRate = this.followersDefaultHitProb;
                                 sel = followersRelFreqMap.getOrDefault(num,
                                         followersDefaultSelectivity);
-                                reduction += (Math.min(100.0, sel * followersRelTuples) *
+                                reduction += (Math.min(TwitterConstants.LIMIT_FOLLOWERS,
+                                                       sel * followersRelTuples) *
                                               hitRate * RANDOM_PAGE_COST);
                                 // Next, we fetch user profile info about those
                                 // followers
                                 hitRate = this.usersDefaultHitProb;
-                                reduction += (Math.min(100.0, sel * followersRelTuples) *
+                                reduction += (Math.min(TwitterConstants.LIMIT_FOLLOWERS,
+                                                       sel * followersRelTuples) *
                                               hitRate * RANDOM_PAGE_COST);
                             } else if (type == 4) {
-                                // GetTweetsForUser
+                                // GetUserTweets
                                 hitRate = this.tweetsHitProbMap.getOrDefault(num,
                                         tweetsDefaultHitProb);
                                 sel = tweetsRelFreqMap.getOrDefault(num,
                                         tweetsDefaultSelectivity);
-                                reduction += (Math.min(10.0, sel * tweetRelTuples) *
+                                reduction += (Math.min(TwitterConstants.LIMIT_TWEETS_FOR_UID,
+                                                       sel * tweetRelTuples) *
                                               hitRate * RANDOM_PAGE_COST);
                             } else if (type == 5) {
                                 // InsertTweet
