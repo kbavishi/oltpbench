@@ -144,17 +144,17 @@ def read_input_file(cur, limit=2000000, print_pred=False):
 
 def create_tweets_stats_file(cur):
     cur.execute("SELECT relpages FROM pg_class WHERE relname = 'tweets'")
-    relpages = cur.fetchone()
+    relpages = cur.fetchone()[0]
 
     cur.execute("SELECT COUNT(*) FROM user_profiles")
-    n_distinct = cur.fetchone()
+    n_distinct = cur.fetchone()[0]
 
     cur.execute("SELECT COUNT(*) FROM tweets")
-    reltuples = cur.fetchone()
+    reltuples = cur.fetchone()[0]
     avg_tweets = reltuples * 1.0 / n_distinct
 
     cur.execute("SELECT uid, COUNT(*) FROM tweets "
-                "GROUP BY uid HAVING COUNT(*) > %s" % TF_FACTOR * avg_tweets)
+                "GROUP BY uid HAVING COUNT(*) > %s" % int(TF_FACTOR*avg_tweets))
     results = cur.fetchall()
 
     # Update in-memory information
@@ -165,8 +165,13 @@ def create_tweets_stats_file(cur):
         mcf[uid] = freq
         sum_mcf += freq
 
-    most_common_vals = ",".join(map(str, mcf.keys()))
-    most_common_freqs = ",".join(map(str, mcf.values()))
+    most_common_vals, most_common_freqs = [], []
+    for uid, freq in mcf.items():
+        most_common_vals += [uid]
+        most_common_freqs += [freq]
+
+    most_common_vals = ",".join(map(str, most_common_vals))
+    most_common_freqs = ",".join(map(str, most_common_freqs))
 
     cur.execute("SELECT tree_level FROM pgstatindex('idx_tweets_uid')")
     tree_level = int(cur.fetchone()[0])
@@ -176,7 +181,7 @@ def create_tweets_stats_file(cur):
     lines = open(filepath, "r").readlines()
     lines = lines[4:]
     for line in lines:
-        uid, size = map(int, line.split())
+        uid, size = map(int, line.split()[:2])
         freq = size * 1.0 / reltuples
         mcf[uid] = freq
         sum_mcf += freq
@@ -227,7 +232,7 @@ def create_table_stats_file(cur, table_name, attr_name=None, index_name=None):
         lines = open(filepath, "r").readlines()
         lines = lines[4:]
         for line in lines:
-            uid, size, _ = map(int, line.split()[2])
+            uid, size = map(int, line.split()[:2])
             freq = size * 1.0 / reltuples
             mcf[uid] = freq
             sum_mcf += freq
