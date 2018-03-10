@@ -90,9 +90,11 @@ public class WorkloadState {
     private boolean fixedDeadline = false;
     private long defaultDeadlineNs = 500000000;
 
-    private int tweetRelPages;
-    private int tweetRelTuples;
-    private int tweetRelNDistinct;
+    private int tweetsRelPages;
+    private int tweetsRelTuples;
+    private int tweetsRelNDistinct;
+    private int tweetsRelTreeLevel;
+    private int tweetsRelTuplesPerPage;
     private double tweetsDefaultSelectivity = 0.0;
     private HashMap<Long, Double> tweetsRelFreqMap = new HashMap<Long, Double>();
     private HashMap<Long, Double> tweetsHitProbMap = new HashMap<Long, Double>();
@@ -101,6 +103,8 @@ public class WorkloadState {
     private int followsRelPages;
     private int followsRelTuples;
     private int followsRelNDistinct;
+    private int followsRelTreeLevel;
+    private int followsRelTuplesPerPage;
     private double followsDefaultSelectivity = 0.0;
     private HashMap<Integer, Double> followsRelFreqMap = new HashMap<Integer, Double>();
     private double followsDefaultHitProb;
@@ -108,6 +112,8 @@ public class WorkloadState {
     private int followersRelPages;
     private int followersRelTuples;
     private int followersRelNDistinct;
+    private int followersRelTreeLevel;
+    private int followersRelTuplesPerPage;
     private double followersDefaultSelectivity = 0.0;
     private HashMap<Integer, Double> followersRelFreqMap = new HashMap<Integer, Double>();
     private double followersDefaultHitProb;
@@ -117,6 +123,8 @@ public class WorkloadState {
 
     private int usersRelPages;
     private int usersRelTuples;
+    private int usersRelTreeLevel;
+    private int usersRelTuplesPerPage;
     private double usersDefaultHitProb;
 
     private TreeSet<PredScore> bins;
@@ -292,9 +300,11 @@ public class WorkloadState {
 
         String nextLine = tableStats.readLine();
         String[] array = nextLine.split(",", 0);
-        this.tweetRelPages = Integer.parseInt(array[0]);
-        this.tweetRelTuples = Integer.parseInt(array[1]);
-        this.tweetRelNDistinct = Integer.parseInt(tableStats.readLine());
+        this.tweetsRelPages = Integer.parseInt(array[0]);
+        this.tweetsRelTuples = Integer.parseInt(array[1]);
+        this.tweetsRelNDistinct = Integer.parseInt(tableStats.readLine());
+        this.tweetsRelTreeLevel = Integer.parseInt(tableStats.readLine());
+        this.tweetsRelTuplesPerPage = Integer.parseInt(tableStats.readLine());
 
         nextLine = tableStats.readLine();
         String[] mc_vals = nextLine.split(",", 0);
@@ -308,7 +318,7 @@ public class WorkloadState {
                                       Double.parseDouble(mc_freqs[i]));
         }
         this.tweetsDefaultSelectivity = (1 - tweetsSumFreq) /
-            (this.tweetRelNDistinct - this.tweetsRelFreqMap.size());
+            (this.tweetsRelNDistinct - this.tweetsRelFreqMap.size());
     }
 
     private void loadFollowsStatsFile() throws IOException {
@@ -326,6 +336,8 @@ public class WorkloadState {
         this.followsRelPages = Integer.parseInt(array[0]);
         this.followsRelTuples = Integer.parseInt(array[1]);
         this.followsRelNDistinct = Integer.parseInt(tableStats.readLine());
+        this.followsRelTreeLevel = Integer.parseInt(tableStats.readLine());
+        this.followsRelTuplesPerPage = Integer.parseInt(tableStats.readLine());
 
         nextLine = tableStats.readLine();
         String[] mc_vals = nextLine.split(",", 0);
@@ -357,6 +369,8 @@ public class WorkloadState {
         this.followersRelPages = Integer.parseInt(array[0]);
         this.followersRelTuples = Integer.parseInt(array[1]);
         this.followersRelNDistinct = Integer.parseInt(tableStats.readLine());
+        this.followersRelTreeLevel = Integer.parseInt(tableStats.readLine());
+        this.followersRelTuplesPerPage = Integer.parseInt(tableStats.readLine());
 
         nextLine = tableStats.readLine();
         String[] mc_vals = nextLine.split(",", 0);
@@ -387,6 +401,9 @@ public class WorkloadState {
         String[] array = nextLine.split(",", 0);
         this.usersRelPages = Integer.parseInt(array[0]);
         this.usersRelTuples = Integer.parseInt(array[1]);
+        tableStats.readLine();
+        this.usersRelTreeLevel = Integer.parseInt(tableStats.readLine());
+        this.usersRelTuplesPerPage = Integer.parseInt(tableStats.readLine());
     }
     
     private void loadTweetsUidStatsFile() throws IOException {
@@ -437,9 +454,9 @@ public class WorkloadState {
 
             // Update popular tweet set sizes
             int size = Integer.parseInt(array[1]);
-            freq =  size * 1.0 / tweetRelTuples;
+            freq =  size * 1.0 / tweetsRelTuples;
             this.tweetsRelFreqMap.put(pred_uid, freq);
-            this.tweetsDefaultSelectivity -= freq / this.tweetRelNDistinct;
+            this.tweetsDefaultSelectivity -= freq / this.tweetsRelNDistinct;
 
             // Update hit probability
             double hit_prob = Double.parseDouble(array[2]);
@@ -557,7 +574,7 @@ public class WorkloadState {
             // Calculate partition size
             // Assume simple part size calculation
             int size = (int) (tweetsRelFreqMap.getOrDefault(preds[idx],
-                            tweetsDefaultSelectivity) * tweetRelTuples);
+                            tweetsDefaultSelectivity) * tweetsRelTuples);
             partition_sizes[idx] = size;
             popular_preds_sizes += size;
 
@@ -567,7 +584,7 @@ public class WorkloadState {
         // Add partition for unpopular tweets
         partition_probs[num_bins-1] = (weights.get(1) + weights.get(3)) *
             unpopularPredicates * 1.0 / BIN_WINDOW_THRESHOLD;
-        partition_sizes[num_bins-1] = tweetRelPages - popular_preds_sizes;
+        partition_sizes[num_bins-1] = tweetsRelPages - popular_preds_sizes;
 
         // Clear the previous hit probabilities
         this.tweetsHitProbMap.clear();
@@ -644,9 +661,8 @@ public class WorkloadState {
                                 // GetTweet: We assume that the unpopular tweets
                                 // partition is touched
                                 hitRate = this.tweetsDefaultHitProb;
-                                // Just 1 disk I/O
-                                sel = 1;
-                                reduction = (sel * 1 * hitRate * RANDOM_PAGE_COST);
+                                int disk_ios = this.tweetsRelTreeLevel + 2;
+                                reduction = (disk_ios * hitRate * RANDOM_PAGE_COST);
                             } else if (type == 2) {
                                 // Need to reduce cost based on predicates
                                 if (pred != null) {
@@ -659,43 +675,52 @@ public class WorkloadState {
                                                 tweetsDefaultHitProb);
                                         sel = tweetsRelFreqMap.getOrDefault(predUid,
                                                 tweetsDefaultSelectivity);
-                                        reduction += (sel * tweetRelTuples *
-                                                      hitRate * RANDOM_PAGE_COST);
+                                        int rows = (int) (sel * tweetsRelTuples);
+                                        int disk_ios = (this.tweetsRelTreeLevel + 1 + rows);
+                                        reduction += (disk_ios * hitRate * RANDOM_PAGE_COST);
                                     }
                                 }
 
                                 // Also need to discount for the initial
-                                // checking of followers table
+                                // checking of follows table
                                 hitRate = this.followsDefaultHitProb;
                                 sel = followsRelFreqMap.getOrDefault(num,
                                         followsDefaultSelectivity);
-                                reduction += (Math.min(TwitterConstants.LIMIT_FOLLOWERS,
-                                                       sel * followsRelTuples) *
-                                              hitRate * RANDOM_PAGE_COST);
+                                int rows = Math.min(TwitterConstants.LIMIT_FOLLOWERS,
+                                                    (int) (sel * followsRelTuples));
+                                int disk_ios = (this.followsRelTreeLevel + 1 +
+                                                rows / this.followsRelTuplesPerPage);
+                                reduction += (disk_ios * hitRate * RANDOM_PAGE_COST);
                             } else if (type == 3) {
                                 // GetFollowers info
+
                                 // First, we find the followers
                                 hitRate = this.followersDefaultHitProb;
                                 sel = followersRelFreqMap.getOrDefault(num,
                                         followersDefaultSelectivity);
-                                reduction += (Math.min(TwitterConstants.LIMIT_FOLLOWERS,
-                                                       sel * followersRelTuples) *
-                                              hitRate * RANDOM_PAGE_COST);
+                                int rows = Math.min(TwitterConstants.LIMIT_FOLLOWERS,
+                                                    (int) (sel * followersRelTuples));
+                                int disk_ios = (this.followersRelTreeLevel + 1 +
+                                                rows / this.followersRelTuplesPerPage);
+                                reduction += (disk_ios * hitRate * RANDOM_PAGE_COST);
+
                                 // Next, we fetch user profile info about those
                                 // followers
                                 hitRate = this.usersDefaultHitProb;
-                                reduction += (Math.min(TwitterConstants.LIMIT_FOLLOWERS,
-                                                       sel * followersRelTuples) *
-                                              hitRate * RANDOM_PAGE_COST);
+                                disk_ios = (this.usersRelTreeLevel + 1 +
+                                            rows / this.usersRelTuplesPerPage);
+                                reduction += (disk_ios * hitRate * RANDOM_PAGE_COST);
                             } else if (type == 4) {
                                 // GetUserTweets
                                 hitRate = this.tweetsHitProbMap.getOrDefault(num,
                                         tweetsDefaultHitProb);
                                 sel = tweetsRelFreqMap.getOrDefault(num,
                                         tweetsDefaultSelectivity);
-                                reduction += (Math.min(TwitterConstants.LIMIT_TWEETS_FOR_UID,
-                                                       sel * tweetRelTuples) *
-                                              hitRate * RANDOM_PAGE_COST);
+                                int rows = Math.min(TwitterConstants.LIMIT_TWEETS_FOR_UID,
+                                                    (int) (sel * tweetsRelTuples));
+                                int disk_ios = (this.tweetsRelTreeLevel + 1 +
+                                                rows / this.tweetsRelTuplesPerPage);
+                                reduction += (disk_ios * hitRate * RANDOM_PAGE_COST);
                             } else if (type == 5) {
                                 // InsertTweet
                                 // No reduction in disk I/Os
