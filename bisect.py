@@ -50,14 +50,17 @@ def get_partition_access_probs(cur, num_partitions):
     cur.execute("SELECT COUNT(*) FROM user_profiles")
     total_user_count = int(cur.fetchall()[0][0])
 
-    for uid in xrange(1, num_partitions):
-        num = get_num_follows_rows(cur, uid)
+    cur.execute("SELECT f1, COUNT(*) FROM followers GROUP BY f1 "
+                "HAVING f1 < %d ORDER BY f1 ASC" % num_partitions)
+    results = cur.fetchall()
+
+    for uid, num in results:
         all_probs += [(q2+q4) * num * 1.0/total_user_count]
         print "Got follows result for %s" % uid
 
     # Last: Unpopular tweets
-    cur.execute("SELECT COUNT(DISTINCT(f2)) FROM followers WHERE f1 NOT IN (%s);" % 
-                ",".join(map(str, xrange(1, num_partitions))))
+    cur.execute("SELECT COUNT(DISTINCT(f2)) FROM followers WHERE f1 < %d" %
+                num_partitions)
     other_user_count = int(cur.fetchall()[0][0])
 
     all_probs += [(q2+q4+q1+q5) * other_user_count/total_user_count]
