@@ -123,7 +123,7 @@ def run_transaction(cur, trans_type, num):
     elif trans_type == 5:
         #return insert_tweet(num)
         # XXX - What to do with insertTweet?
-        return 100.0, None
+        return insert_tweet(cur, num) * 10.0, None
     else:
         assert False, "Unknown transaction type: %s" % trans_type
 
@@ -210,10 +210,10 @@ def create_tweets_stats_file(cur):
 
 def create_table_stats_file(cur, table_name, attr_name=None, index_name=None):
     cur.execute("SELECT relpages FROM pg_class WHERE relname = '%s'" % table_name)
-    relpages = cur.fetchone()
+    relpages = cur.fetchone()[0]
 
-    n_distinct, most_common_vals, most_common_freqs, tuples_per_page = \
-        None, None, None, 0
+    n_distinct, reltuples, most_common_vals, most_common_freqs, tuples_per_page = \
+        None, 0, None, None, 0
     if attr_name:
         cur.execute("SELECT most_common_vals, most_common_freqs FROM pg_stats "
                     "WHERE tablename='%s' AND attname='%s'" % (table_name, attr_name))
@@ -233,6 +233,7 @@ def create_table_stats_file(cur, table_name, attr_name=None, index_name=None):
             table_name == "user_profiles":
         cur.execute("SELECT COUNT(*) FROM user_profiles");
         n_distinct = cur.fetchone()[0]
+        reltuples = n_distinct
 
     tree_level = None
     if index_name:
@@ -259,6 +260,8 @@ def create_table_stats_file(cur, table_name, attr_name=None, index_name=None):
             f.write("%s\n" % int(n_distinct))
         if tree_level:
             f.write("%s\n" % int(tree_level))
+        if tuples_per_page:
+            f.write("%s\n" % int(tuples_per_page))
         if most_common_vals:
             f.write("%s\n" % most_common_vals)
         if most_common_freqs:
