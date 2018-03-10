@@ -79,16 +79,19 @@ def get_partition_sizes(cur, num_partitions):
 
     # Add table partitions
     # 1. Follows
-    all_sizes += [get_rel_pages(cur, "follows") +
-                  get_rel_pages(cur, "follows_pkey")]
+    #all_sizes += [get_rel_pages(cur, "follows") +
+    #              get_rel_pages(cur, "follows_pkey")]
+    all_sizes += [get_rel_pages(cur, "follows")]
 
     # 2. Followers
-    all_sizes += [get_rel_pages(cur, "followers") +
-                  get_rel_pages(cur, "followers_pkey")]
+    #all_sizes += [get_rel_pages(cur, "followers") +
+    #              get_rel_pages(cur, "followers_pkey")]
+    all_sizes += [get_rel_pages(cur, "followers")]
 
     # 3. User profiles
-    all_sizes += [get_rel_pages(cur, "user_profiles") +
-                  get_rel_pages(cur, "user_profiles_pkey")]
+    #all_sizes += [get_rel_pages(cur, "user_profiles") +
+    #              get_rel_pages(cur, "user_profiles_pkey")]
+    all_sizes += [get_rel_pages(cur, "user_profiles")]
 
     # 4. IDX_Tweets_UID
     all_sizes += [get_rel_pages(cur, "idx_tweets_uid")]
@@ -102,8 +105,9 @@ def get_partition_sizes(cur, num_partitions):
         print "Got tweets result for %s" % uid
 
     # Last: Unpopular tweets partition
-    total_count = get_rel_pages(cur, "tweets") + \
-        get_rel_pages(cur, "tweets_pkey")
+    #total_count = get_rel_pages(cur, "tweets") + \
+    #    get_rel_pages(cur, "tweets_pkey")
+    total_count = get_rel_pages(cur, "tweets")
     all_sizes += [total_count - popular_tweets_num]
 
     filename = os.path.join(os.getenv("HOME"),
