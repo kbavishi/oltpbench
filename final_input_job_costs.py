@@ -205,6 +205,7 @@ def create_tweets_stats_file(cur):
         f.write("%s,%s\n" % (int(relpages), int(reltuples)))
         f.write("%s\n" % int(n_distinct))
         f.write("%s\n" % int(tree_level))
+        f.write("%s\n" % int(tuples_per_page))
         f.write("%s\n" % most_common_vals)
         f.write("%s" % most_common_freqs)
 
