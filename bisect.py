@@ -101,8 +101,11 @@ def get_partition_sizes(cur, num_partitions):
 
     # 5 onwards: Popular UID tweet partitions
     popular_tweets_num = 0
-    for uid in xrange(1, num_partitions):
-        num = get_num_tweets(cur, uid)
+    cur.execute("SELECT uid, COUNT(*) FROM tweets GROUP BY uid "
+                "HAVING uid < %d ORDER BY uid ASC" % num_partitions)
+    results = cur.fetchall()
+
+    for uid, num in results:
         all_sizes += [num]
         popular_tweets_num += num
         print "Got tweets result for %s" % uid
