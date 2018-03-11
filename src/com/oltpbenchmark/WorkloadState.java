@@ -309,13 +309,12 @@ public class WorkloadState {
         double tweetsSumFreq = 0.0;
         String[] mc_vals = null;
         String[] mc_freqs = null;
-        try {
-            nextLine = tableStats.readLine();
+        nextLine = tableStats.readLine();
+        if (nextLine != null && !nextLine.equals("")) {
+            // Relevant info is available
             mc_vals = nextLine.split(",", 0);
             nextLine = tableStats.readLine();
             mc_freqs = nextLine.split(",", 0);
-        } catch (IOException e) {
-            // Relevant info might not be available
         }
 
         if (mc_vals != null && mc_freqs != null) {
