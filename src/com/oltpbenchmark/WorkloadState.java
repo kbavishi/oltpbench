@@ -306,16 +306,24 @@ public class WorkloadState {
         this.tweetsRelTreeLevel = Integer.parseInt(tableStats.readLine());
         this.tweetsRelTuplesPerPage = Integer.parseInt(tableStats.readLine());
 
-        nextLine = tableStats.readLine();
-        String[] mc_vals = nextLine.split(",", 0);
-        nextLine = tableStats.readLine();
-        String[] mc_freqs = nextLine.split(",", 0);
-
         double tweetsSumFreq = 0.0;
-        for (int i=0; i<mc_vals.length; i++) {
-            tweetsSumFreq += Double.parseDouble(mc_freqs[i]);
-            this.tweetsRelFreqMap.put(Long.parseLong(mc_vals[i]),
-                                      Double.parseDouble(mc_freqs[i]));
+        String[] mc_vals = null;
+        String[] mc_freqs = null;
+        try {
+            nextLine = tableStats.readLine();
+            mc_vals = nextLine.split(",", 0);
+            nextLine = tableStats.readLine();
+            mc_freqs = nextLine.split(",", 0);
+        } catch (IOException e) {
+            // Relevant info might not be available
+        }
+
+        if (mc_vals != null && mc_freqs != null) {
+            for (int i=0; i<mc_vals.length; i++) {
+                tweetsSumFreq += Double.parseDouble(mc_freqs[i]);
+                this.tweetsRelFreqMap.put(Long.parseLong(mc_vals[i]),
+                                          Double.parseDouble(mc_freqs[i]));
+            }
         }
         this.tweetsDefaultSelectivity = (1 - tweetsSumFreq) /
             (this.tweetsRelNDistinct - this.tweetsRelFreqMap.size());
