@@ -151,7 +151,7 @@ def create_tweets_stats_file(cur):
     cur.execute("SELECT relpages FROM pg_class WHERE relname = 'tweets'")
     relpages = cur.fetchone()[0]
 
-    cur.execute("SELECT COUNT(*) FROM user_profiles")
+    cur.execute("SELECT COUNT(DISTINCT(uid)) FROM tweets")
     n_distinct = cur.fetchone()[0]
 
     cur.execute("SELECT COUNT(*) FROM tweets")
