@@ -60,7 +60,9 @@ def get_tweets_from_following(cur, uid):
             etr = tstats.reltuples * sel
 
         # Unclustered index scan
-        cost += (tstats.tree_level + 1 + etr) * Cr + (etr) * (Ci+Ct)
+        #cost += (tstats.tree_level + 1 + etr) * Cr + (etr) * (Ci+Ct)
+        # Clustered index scan
+        cost += (tstats.tree_level + 1 + etr / tstats.tuples_per_page) * Cr + (etr) * (Ci+Ct)
 
     return cost, ",".join(map(str, follow_uid_list))
 
