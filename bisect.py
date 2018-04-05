@@ -71,7 +71,10 @@ def get_partition_access_probs(cur, num_partitions):
                             "hits_stats_%s.txt" % num_partitions)
     f = open(filename, 'w')
     for i in xrange(len(all_probs)):
-        text = "ACC_PROB %d: %s" % (uid_list[i], all_probs[i])
+        if i >= 4:
+            text = "ACC_PROB %d: %s" % (uid_list[i], all_probs[i])
+        else:
+            text = "ACC_PROB %d: %s" % (i+1, all_probs[i])
         print text
         f.write("%s\n" % text)
 
@@ -125,7 +128,10 @@ def get_partition_sizes(cur, num_partitions):
                             "hits_stats_%s.txt" % num_partitions)
     f = open(filename, 'a')
     for i in xrange(len(all_sizes)):
-        text = "PART_SIZE %d: %s" % (uid_list[i], all_sizes[i])
+        if i >= 4:
+            text = "PART_SIZE %d: %s" % (uid_list[i], all_sizes[i])
+        else:
+            text = "PART_SIZE %d: %s" % (i+1, all_sizes[i])
         print text
         f.write("%s\n" % text)
 
