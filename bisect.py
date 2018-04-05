@@ -51,7 +51,7 @@ def get_partition_access_probs(cur, num_partitions):
     total_user_count = int(cur.fetchall()[0][0])
 
     cur.execute("SELECT f1, COUNT(*) FROM followers GROUP BY f1 "
-                "ORDER BY f1 ASC LIMIT %d" % num_partitions)
+                "ORDER BY COUNT(*) DESC LIMIT %d" % num_partitions)
     results = cur.fetchall()
 
     uid_list = []
@@ -102,16 +102,17 @@ def get_partition_sizes(cur, num_partitions):
     all_sizes += [get_rel_pages(cur, "idx_tweets_uid")]
 
     # 5 onwards: Popular UID tweet partitions
-    popular_tweets_num = 0
-    cur.execute("SELECT uid, COUNT(*) FROM tweets GROUP BY uid "
-                "ORDER BY uid ASC LIMIT %d" % num_partitions)
+    cur.execute("SELECT f1, COUNT(*) FROM followers GROUP BY f1 "
+                "ORDER BY COUNT(*) DESC LIMIT %d" % num_partitions)
     results = cur.fetchall()
 
     uid_list = []
-    for uid, num in results:
-        all_sizes += [num]
+    popular_tweets_num = 0
+    for uid, _ in results:
         uid_list += [uid]
-        popular_tweets_num += num
+        size = get_num_tweets(cur, uid)
+        all_sizes += [size]
+        popular_tweets_num += size
         print "Got tweets result for %s" % uid
 
     # Last: Unpopular tweets partition
