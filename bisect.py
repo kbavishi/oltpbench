@@ -54,13 +54,15 @@ def get_partition_access_probs(cur, num_partitions):
                 "HAVING f1 < %d ORDER BY f1 ASC" % num_partitions)
     results = cur.fetchall()
 
+    uid_list = []
     for uid, num in results:
         all_probs += [(q2+q4) * num * 1.0/total_user_count]
+        uid_list += [uid]
         print "Got follows result for %s" % uid
 
     # Last: Unpopular tweets
-    cur.execute("SELECT COUNT(DISTINCT(f2)) FROM followers WHERE f1 < %d" %
-                num_partitions)
+    cur.execute("SELECT COUNT(DISTINCT(f2)) FROM followers WHERE f1 NOT IN (%s)" %
+                ",".join(uid_list))
     other_user_count = int(cur.fetchall()[0][0])
 
     all_probs += [(q2+q4+q1+q5) * other_user_count/total_user_count]
@@ -69,7 +71,7 @@ def get_partition_access_probs(cur, num_partitions):
                             "hits_stats_%s.txt" % num_partitions)
     f = open(filename, 'w')
     for i in xrange(len(all_probs)):
-        text = "ACC_PROB %d: %s" % (i+1, all_probs[i])
+        text = "ACC_PROB %d: %s" % (uid_list[i], all_probs[i])
         print text
         f.write("%s\n" % text)
 
@@ -105,8 +107,10 @@ def get_partition_sizes(cur, num_partitions):
                 "HAVING uid < %d ORDER BY uid ASC" % num_partitions)
     results = cur.fetchall()
 
+    uid_list = []
     for uid, num in results:
         all_sizes += [num]
+        uid_list += [uid]
         popular_tweets_num += num
         print "Got tweets result for %s" % uid
 
@@ -120,7 +124,7 @@ def get_partition_sizes(cur, num_partitions):
                             "hits_stats_%s.txt" % num_partitions)
     f = open(filename, 'a')
     for i in xrange(len(all_sizes)):
-        text = "PART_SIZE %d: %s" % (i+1, all_sizes[i])
+        text = "PART_SIZE %d: %s" % (uid_list[i], all_sizes[i])
         print text
         f.write("%s\n" % text)
 
@@ -134,6 +138,10 @@ def read_vals(cur, num_partitions):
     lines = open(filename, "r").readlines()
     total_partitions = num_partitions + 4
 
+    uid_vals = []
+    for i in xrange(4, total_partitions+1):
+        uid_vals += [int(lines[i].split()[1]]
+
     # First 100 lines will give us the access probs
     rp_vals = []
     for i in xrange(total_partitions):
@@ -144,7 +152,7 @@ def read_vals(cur, num_partitions):
     for i in xrange(total_partitions, total_partitions*2):
         sp_vals += [int(lines[i].split()[2])]
 
-    return rp_vals, sp_vals
+    return uid_vals, rp_vals, sp_vals
 
 def get_np_val(x, rp_val, sp_val):
     np_val = sp_val * (1 - 1 / math.pow((1 + x*rp_val/sp_val), Lp + 1))
@@ -178,7 +186,7 @@ if __name__ == '__main__':
     cur = conn.cursor()
 
     global rp_vals, sp_vals, B
-    rp_vals, sp_vals = read_vals(cur, args.partitions)
+    uid_vals, rp_vals, sp_vals = read_vals(cur, args.partitions)
     B = args.memory * 1024 * 1024 / (8 * 1024)
 
     ratio = optimize.bisect(func, 0, (B/0.1))
@@ -192,7 +200,7 @@ if __name__ == '__main__':
         if i>=4:
             # For the popular tweets partitions, print the predicate, set size
             # and the probability
-            f.write("%s %s %s\n" % (i-3, sp_vals[i], hit_prob))
+            f.write("%s %s %s\n" % (uid_vals[i-4], sp_vals[i], hit_prob))
         else:
             # For the initial table partitions, just print the probability
             f.write("%s\n" % hit_prob)

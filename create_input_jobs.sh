@@ -23,7 +23,8 @@ sed -i 's/(.*.java:.*) INFO  - JOB InsertTweet: /5,/' /tmp/jobs.txt
 mv /tmp/jobs.txt ~/random_jobs.txt
 
 echo "Fetching new input job costs from PostgresSQL database"
-python new_input_jobs_costs.py $1 $2 $3 true > ~/input_jobs_loc_cost_new.txt
+#python new_input_jobs_costs.py $1 $2 $3 true > ~/input_jobs_loc_cost_new.txt
+python final_input_jobs_costs.py $1 $2 $3 true > ~/input_jobs_loc_cost_new.txt
 
 echo "Fetching input job costs from PostgresSQL database"
 python get_input_jobs_costs.py $1 $2 $3
