@@ -684,7 +684,7 @@ public class WorkloadState {
                                                 tweetsDefaultSelectivity);
                                         int rows = (int) (sel * tweetsRelTuples);
                                         int disk_ios = (this.tweetsRelTreeLevel + 1 +
-                                                        rows / this.tweetsRelTuplesPerPage);
+                                                        (1 + rows / this.tweetsRelTuplesPerPage));
                                         reduction += (disk_ios * hitRate * RANDOM_PAGE_COST);
                                     }
                                 }
