@@ -66,13 +66,14 @@ def get_partition_access_probs(cur, num_partitions):
     other_user_count = int(cur.fetchall()[0][0])
 
     all_probs += [(q2+q4+q1+q5) * other_user_count/total_user_count]
+    uid_list += [42]
 
     filename = os.path.join(os.getenv("HOME"),
                             "hits_stats_%s.txt" % num_partitions)
     f = open(filename, 'w')
     for i in xrange(len(all_probs)):
         if i >= 4:
-            text = "ACC_PROB %d: %s" % (uid_list[i], all_probs[i])
+            text = "ACC_PROB %d: %s" % (uid_list[i-4], all_probs[i])
         else:
             text = "ACC_PROB %d: %s" % (i+1, all_probs[i])
         print text
@@ -123,13 +124,14 @@ def get_partition_sizes(cur, num_partitions):
     #    get_rel_pages(cur, "tweets_pkey")
     total_count = get_rel_pages(cur, "tweets")
     all_sizes += [total_count - popular_tweets_num]
+    uid_list += [42]
 
     filename = os.path.join(os.getenv("HOME"),
                             "hits_stats_%s.txt" % num_partitions)
     f = open(filename, 'a')
     for i in xrange(len(all_sizes)):
         if i >= 4:
-            text = "PART_SIZE %d: %s" % (uid_list[i], all_sizes[i])
+            text = "PART_SIZE %d: %s" % (uid_list[i-4], all_sizes[i])
         else:
             text = "PART_SIZE %d: %s" % (i+1, all_sizes[i])
         print text
@@ -143,10 +145,10 @@ def read_vals(cur, num_partitions):
         get_partition_sizes(cur, num_partitions)
 
     lines = open(filename, "r").readlines()
-    total_partitions = num_partitions + 4
+    total_partitions = 4 + num_partitions + 1
 
     uid_vals = []
-    for i in xrange(4, total_partitions+1):
+    for i in xrange(4, total_partitions):
         uid_vals += [int(lines[i].split()[1].strip(":"))]
 
     # First 100 lines will give us the access probs
