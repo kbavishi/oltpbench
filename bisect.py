@@ -51,7 +51,7 @@ def get_partition_access_probs(cur, num_partitions):
     total_user_count = int(cur.fetchall()[0][0])
 
     cur.execute("SELECT f1, COUNT(*) FROM followers GROUP BY f1 "
-                "HAVING f1 < %d ORDER BY f1 ASC" % num_partitions)
+                "ORDER BY f1 ASC LIMIT %d" % num_partitions)
     results = cur.fetchall()
 
     uid_list = []
@@ -62,7 +62,7 @@ def get_partition_access_probs(cur, num_partitions):
 
     # Last: Unpopular tweets
     cur.execute("SELECT COUNT(DISTINCT(f2)) FROM followers WHERE f1 NOT IN (%s)" %
-                ",".join(uid_list))
+                ",".join(map(str, uid_list)))
     other_user_count = int(cur.fetchall()[0][0])
 
     all_probs += [(q2+q4+q1+q5) * other_user_count/total_user_count]
@@ -104,7 +104,7 @@ def get_partition_sizes(cur, num_partitions):
     # 5 onwards: Popular UID tweet partitions
     popular_tweets_num = 0
     cur.execute("SELECT uid, COUNT(*) FROM tweets GROUP BY uid "
-                "HAVING uid < %d ORDER BY uid ASC" % num_partitions)
+                "ORDER BY uid ASC LIMIT %d" % num_partitions)
     results = cur.fetchall()
 
     uid_list = []
@@ -140,7 +140,7 @@ def read_vals(cur, num_partitions):
 
     uid_vals = []
     for i in xrange(4, total_partitions+1):
-        uid_vals += [int(lines[i].split()[1]]
+        uid_vals += [int(lines[i].split()[1].strip(":"))]
 
     # First 100 lines will give us the access probs
     rp_vals = []
