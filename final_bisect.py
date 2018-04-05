@@ -121,7 +121,8 @@ def get_partition_sizes(cur, num_partitions):
     popular_tweets_num = 0
     for uid, _ in results:
         uid_list += [uid]
-        size = get_num_tweets(cur, uid) / tuples_per_page
+        num_tweets = get_num_tweets(cur, uid)
+        size = math.ceil(num_tweets * 1.0 / tuples_per_page)
         all_sizes += [size]
         popular_tweets_num += size
         print "Got tweets result for %s" % uid
