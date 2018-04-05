@@ -201,6 +201,7 @@ if __name__ == '__main__':
     conn = psycopg2.connect(dbname="twitter", host=args.host, user=args.user,
                             password=args.password)
     cur = conn.cursor()
+    cur.execute("CREATE EXTENSION pgstattuple")
 
     global rp_vals, sp_vals, B
     uid_vals, rp_vals, sp_vals = read_vals(cur, args.partitions)
