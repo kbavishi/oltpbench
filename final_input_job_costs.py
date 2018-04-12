@@ -44,7 +44,9 @@ def get_tweets_from_following(cur, uid):
 
     efr = min(efr, LIMIT_FOLLOWERS)
     # Sorted index scan
-    cost = (fstats.tree_level + 1 + efr / fstats.tuples_per_page) * Cr + efr * (Ci + Ct)
+    #cost = (fstats.tree_level + 1 + efr / fstats.tuples_per_page) * Cr + efr * (Ci + Ct)
+    # Index scan + multiple results within that page
+    cost = (fstats.tree_level + 1 + efr) * Cr + efr * (Ci + Ct)
 
     tstats = stats["tweets"]
     cur.execute("SELECT f2 FROM follows WHERE f1 = %s LIMIT %s;" %

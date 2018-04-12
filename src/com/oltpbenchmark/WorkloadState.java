@@ -683,8 +683,11 @@ public class WorkloadState {
                                         sel = tweetsRelFreqMap.getOrDefault(predUid,
                                                 tweetsDefaultSelectivity);
                                         int rows = (int) (sel * tweetsRelTuples);
-                                        int disk_ios = (this.tweetsRelTreeLevel + 1 +
-                                                        (1 + rows / this.tweetsRelTuplesPerPage));
+                                        // Clustered index scan
+                                        //int disk_ios = (this.tweetsRelTreeLevel + 1 +
+                                        //                (1 + rows / this.tweetsRelTuplesPerPage));
+                                        // Unclustered index scan
+                                        int disk_ios = (this.tweetsRelTreeLevel + 1 + rows);
                                         reduction += (disk_ios * hitRate * RANDOM_PAGE_COST);
                                     }
                                 }
