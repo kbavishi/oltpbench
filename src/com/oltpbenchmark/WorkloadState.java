@@ -588,6 +588,23 @@ public class WorkloadState {
             idx++;
         }
 
+        int[] new_partition_sizes = new int[num_bins];
+        new_partition_sizes[0] = partition_sizes[0];
+        new_partition_sizes[1] = partition_sizes[1];
+        new_partition_sizes[2] = partition_sizes[2];
+        new_partition_sizes[3] = partition_sizes[3];
+        new_partition_sizes[num_bins-1] = partition_sizes[num_bins-1];
+
+        popular_preds_sizes = 0;
+        for (int i=4; i < num_bins-1; i++) {
+            int sum = 0;
+            for (int j=4; j < i; j++) {
+                sum += partition_sizes[j];
+            }
+            new_partition_sizes[i] = (int) Math.ceil(partition_sizes[i] * (1.0 - sum * 1.0 / tweetsUidRelPages));
+            popular_preds_sizes += new_partition_sizes[i];
+        }
+
         // Add partition for unpopular tweets
         partition_probs[num_bins-1] = (weights.get(1) + weights.get(3)) *
             unpopularPredicates * 1.0 / BIN_WINDOW_THRESHOLD;
@@ -599,14 +616,32 @@ public class WorkloadState {
         // Recalculate them
         double x_val = bisect(partition_probs, partition_sizes);
         for (int i=4; i < num_bins-1; i++) {
-            double np_val = get_np_val(x_val, partition_probs[i], partition_sizes[i]);
+            double np_val = get_np_val(x_val, partition_probs[i], new_partition_sizes[i]);
             double hit_prob = np_val / partition_sizes[i];
-            this.tweetsHitProbMap.put(preds[i], hit_prob);
-            LOG.info("Calculated for pred " + preds[i] + ": " + hit_prob);
+
+            double prob = 0.0;
+            double prob_own = 1.0;
+            prob = (1.0 / tweetsUidRelPages) * np_val;
+            for (int j=4; j<i; j++) {
+                double other_np_val = get_np_val(x_val, partition_probs[j],
+                                                 new_partition_sizes[j]);
+                prob_own *= (1.0 - new_partition_sizes[j] * 1.0 / tweetsUidRelPages);
+                prob += (1.0 / tweetsUidRelPages) * other_np_val;
+            }
+            prob += prob_own * hit_prob;
+            prob = Math.min(1.0, prob);
+
+            this.tweetsHitProbMap.put(preds[i], prob);
+            LOG.info("Calculated for pred " + preds[i] + ": " + prob);
         }
         // We also need to calculate the hit prob of the unpopular tweets
         double def_np_val = get_np_val(x_val, partition_probs[num_bins-1],
-                                       partition_sizes[num_bins-1]);
+                                       new_partition_sizes[num_bins-1]);
+        for (int j=4; j<num_bins; j++) {
+            double other_np_val = get_np_val(x_val, partition_probs[j],
+                                             new_partition_sizes[j]);
+            def_np_val += (1.0 / tweetsUidRelPages) * other_np_val;
+        }
         this.tweetsDefaultHitProb = def_np_val / partition_sizes[num_bins-1];
         LOG.info("Calculated for default pred: " + this.tweetsDefaultHitProb);
 
