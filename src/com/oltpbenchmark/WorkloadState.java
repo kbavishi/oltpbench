@@ -85,8 +85,7 @@ public class WorkloadState {
     private int RESULTS_QUEUE_LIMIT;
     private double RANDOM_PAGE_COST = 4.0;
     private Queue<SubmittedProcedure> workQueue;
-    private LinkedList<SubmittedProcedure> ageQueue = new LinkedList<SubmittedProcedure>();
-    private HashMap<SubmittedProcedure, Integer> ageQueueMap = new HashMap<SubmittedProcedure, Integer>();
+    private Queue<SubmittedProcedure> ageQueue = new PriorityQueue<SubmittedProcedure>(2*RATE_QUEUE_LIMIT, ageComp);
     private HashMap<Integer, Double> costSlope = new HashMap<Integer, Double>();
     private double alpha = 0.5;
     private static double gedfFactor = 0.4;
@@ -269,6 +268,14 @@ public class WorkloadState {
             } else {
                 return Long.compare(p1.element, p2.element);
             }
+        }
+    };
+
+    // EDF Comparator anonymous class implementation
+    public static Comparator<SubmittedProcedure> ageComp = new Comparator<SubmittedProcedure>(){
+        @Override
+        public int compare(SubmittedProcedure p1, SubmittedProcedure p2) {
+            return Long.compare(p1.getStartTime(), p2.getStartTime());
         }
     };
 
@@ -660,7 +667,6 @@ public class WorkloadState {
             if (resetQueues) {
                 workQueue.clear();
                 ageQueue.clear();
-                ageQueueMap.clear();
             }
     
             assert amount > 0;
@@ -676,9 +682,7 @@ public class WorkloadState {
                         SubmittedProcedure proc = (SubmittedProcedure) it.next();
                         workQueue.add(proc);
                         if (!isFIFO) {
-                            int index = ageQueue.size();
                             ageQueue.add(proc);
-                            ageQueueMap.put(proc, index);
                         }
                     }
                }
@@ -809,9 +813,7 @@ public class WorkloadState {
                                 cost, execTime, deadlineTime);
                         workQueue.add(subProc);
                         if (!isFIFO) {
-                            int index = ageQueue.size();
                             ageQueue.add(subProc);
-                            ageQueueMap.put(subProc, index);
                         }
                     }
                 }
@@ -830,7 +832,6 @@ public class WorkloadState {
                 } else {
                     while(workQueue.size() > RATE_QUEUE_LIMIT) {
                         SubmittedProcedure proc = ageQueue.poll();
-                        ageQueueMap.remove(proc);
                         workQueue.remove(proc);
                         droppedTransactions++;
                         droppedTransactionUsecs += ((currentTime - proc.getStartTime()) / 1000);
@@ -937,8 +938,7 @@ public class WorkloadState {
                     if (currentTime + proc.getExecTime() > proc.getDeadlineTime()) {
                         // Can not complete this transaction. Just drop it
                         proc = workQueue.poll();
-                        int index = ageQueueMap.remove(proc);
-                        ageQueue.remove(index);
+                        ageQueue.remove(proc);
                         droppedTransactions++;
                         droppedTransactionUsecs += ((currentTime - proc.getStartTime()) / 1000);
                     } else {
@@ -960,8 +960,7 @@ public class WorkloadState {
                 return workQueue.poll();
             } else {
                 SubmittedProcedure proc = workQueue.poll();
-                int index = ageQueueMap.remove(proc);
-                ageQueue.remove(index);
+                ageQueue.remove(proc);
                 return proc;
             }
         }
@@ -1094,7 +1093,6 @@ public class WorkloadState {
             // Clear the work from the previous phase.
             workQueue.clear();
             ageQueue.clear();
-            ageQueueMap.clear();
 
             // Determine how many workers need to sleep, then make sure they
             // do.
