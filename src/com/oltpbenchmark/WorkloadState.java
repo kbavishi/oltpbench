@@ -85,7 +85,7 @@ public class WorkloadState {
     private int RESULTS_QUEUE_LIMIT;
     private double RANDOM_PAGE_COST = 4.0;
     private Queue<SubmittedProcedure> workQueue;
-    private Queue<SubmittedProcedure> ageQueue = new LinkedList<SubmittedProcedure>();
+    private LinkedList<SubmittedProcedure> ageQueue = new LinkedList<SubmittedProcedure>();
     private HashMap<SubmittedProcedure, Integer> ageQueueMap = new HashMap<SubmittedProcedure, Integer>();
     private HashMap<Integer, Double> costSlope = new HashMap<Integer, Double>();
     private double alpha = 0.5;
@@ -617,7 +617,7 @@ public class WorkloadState {
         this.tweetsHitProbMap.clear();
 
         // Recalculate them
-        double x_val = bisect(partition_probs, partition_sizes);
+        double x_val = bisect(partition_probs, new_partition_sizes);
         for (int i=4; i < num_bins-1; i++) {
             double np_val = get_np_val(x_val, partition_probs[i], new_partition_sizes[i]);
             double hit_prob = np_val / partition_sizes[i];
@@ -937,7 +937,7 @@ public class WorkloadState {
                     if (currentTime + proc.getExecTime() > proc.getDeadlineTime()) {
                         // Can not complete this transaction. Just drop it
                         proc = workQueue.poll();
-                        int index = ageQueueMap.get(proc);
+                        int index = ageQueueMap.remove(proc);
                         ageQueue.remove(index);
                         droppedTransactions++;
                         droppedTransactionUsecs += ((currentTime - proc.getStartTime()) / 1000);
@@ -960,7 +960,7 @@ public class WorkloadState {
                 return workQueue.poll();
             } else {
                 SubmittedProcedure proc = workQueue.poll();
-                int index = ageQueueMap.get(proc);
+                int index = ageQueueMap.remove(proc);
                 ageQueue.remove(index);
                 return proc;
             }
