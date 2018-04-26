@@ -85,10 +85,8 @@ public class WorkloadState {
     private int RESULTS_QUEUE_LIMIT;
     private double RANDOM_PAGE_COST = 4.0;
     private Queue<SubmittedProcedure> workQueue;
-    private Queue<SubmittedProcedure> ageQueue =
-        new LinkedList<SubmittedProcedure>();
-    private HashMap<SubmittedProcedure, Integer> ageQueueMap =
-        new HashMap<SubmittedProcedure, Integer>();
+    private Queue<SubmittedProcedure> ageQueue = new LinkedList<SubmittedProcedure>();
+    private HashMap<SubmittedProcedure, Integer> ageQueueMap = new HashMap<SubmittedProcedure, Integer>();
     private HashMap<Integer, Double> costSlope = new HashMap<Integer, Double>();
     private double alpha = 0.5;
     private static double gedfFactor = 0.4;
@@ -681,6 +679,7 @@ public class WorkloadState {
                             int index = ageQueue.size();
                             ageQueue.add(proc);
                             ageQueueMap.put(proc, index);
+                        }
                     }
                }
            } else if (currentPhase == null || currentPhase.isDisabled()
