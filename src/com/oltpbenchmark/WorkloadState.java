@@ -29,7 +29,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.LinkedList;
-import java.util.PriorityQueue;
+//import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.TreeSet;
 import java.util.NoSuchElementException;
@@ -38,6 +38,7 @@ import com.oltpbenchmark.benchmarks.twitter.TwitterConstants;
 import com.oltpbenchmark.types.SchedPolicy;
 import com.oltpbenchmark.types.State;
 import com.oltpbenchmark.util.QueueLimitException;
+import com.oltpbenchmark.util.PriorityQueue;
 import org.apache.log4j.Logger;
 
 class PredScore {
@@ -84,6 +85,8 @@ public class WorkloadState {
     private int RESULTS_QUEUE_LIMIT;
     private double RANDOM_PAGE_COST = 4.0;
     private Queue<SubmittedProcedure> workQueue;
+    private Queue<SubmittedProcedure> ageQueue;
+    private HashMap<SubmittedProcedure, Integer> ageQueueMap;
     private HashMap<Integer, Double> costSlope = new HashMap<Integer, Double>();
     private double alpha = 0.5;
     private static double gedfFactor = 0.4;
@@ -278,11 +281,15 @@ public class WorkloadState {
             case EDF_PRED_BUF_LOC_FULL:
             case EDF_PRED_DYNAMIC:
                 workQueue = new PriorityQueue<SubmittedProcedure>(100, edfComp);
+                ageQueue = new LinkedList<SubmittedProcedure>();
+                ageQueueMap = new HashMap<SubmittedProcedure, Integer>();
                 break;
             case GEDF:
             case GEDF_PRED_BUF_LOC_FULL:
             case GEDF_PRED_DYNAMIC:
                 workQueue = new PriorityQueue<SubmittedProcedure>(100, gedfComp);
+                ageQueue = new LinkedList<SubmittedProcedure>();
+                ageQueueMap = new HashMap<SubmittedProcedure, Integer>();
                 break;
 
         }
@@ -656,9 +663,12 @@ public class WorkloadState {
        synchronized (this) {
             if (resetQueues) {
                 workQueue.clear();
+                ageQueue.clear();
+                ageQueueMap.clear();
             }
     
             assert amount > 0;
+            boolean isFIFO = (SchedPolicy.valueOf(this.schedPolicy) != SchedPolicy.FIFO);
     
             // Only use the work queue if the phase is enabled and rate limited.
             if (traceReader != null && currentPhase != null) {
@@ -793,8 +803,14 @@ public class WorkloadState {
                                      costSlope.getOrDefault(type, 25000.0) + ", " + execTime);
                         }
 
-                        workQueue.add(new SubmittedProcedure(type, startTime,
-                                num, cost, execTime, deadlineTime));
+                        SubmittedProcedure subProc = new SubmittedProcedure(type, startTime, num,
+                                cost, execTime, deadlineTime);
+                        workQueue.add(subProc);
+                        if (!isFIFO) {
+                            int index = ageQueue.size();
+                            ageQueue.add(subProc);
+                            ageQueueMap.put(subProc, index);
+                        }
                     }
                 }
             }
@@ -803,10 +819,20 @@ public class WorkloadState {
             // (from the front of the queue).
             if (workQueue.size() > RATE_QUEUE_LIMIT) {
                 long currentTime = System.nanoTime();
-                while(workQueue.size() > RATE_QUEUE_LIMIT) {
-                    SubmittedProcedure proc = workQueue.poll();
-                    droppedTransactions++;
-                    droppedTransactionUsecs += ((currentTime - proc.getStartTime()) / 1000);
+                if (isFIFO) {
+                    while(workQueue.size() > RATE_QUEUE_LIMIT) {
+                        SubmittedProcedure proc = workQueue.poll();
+                        droppedTransactions++;
+                        droppedTransactionUsecs += ((currentTime - proc.getStartTime()) / 1000);
+                    }
+                } else {
+                    while(workQueue.size() > RATE_QUEUE_LIMIT) {
+                        SubmittedProcedure proc = ageQueue.poll();
+                        ageQueueMap.remove(proc);
+                        workQueue.remove(proc);
+                        droppedTransactions++;
+                        droppedTransactionUsecs += ((currentTime - proc.getStartTime()) / 1000);
+                    }
                 }
             }
 
@@ -908,7 +934,9 @@ public class WorkloadState {
                     SubmittedProcedure proc = workQueue.peek();
                     if (currentTime + proc.getExecTime() > proc.getDeadlineTime()) {
                         // Can not complete this transaction. Just drop it
-                        workQueue.poll();
+                        proc = workQueue.poll();
+                        int index = ageQueueMap.get(proc);
+                        ageQueue.remove(index);
                         droppedTransactions++;
                         droppedTransactionUsecs += ((currentTime - proc.getStartTime()) / 1000);
                     } else {
@@ -926,7 +954,14 @@ public class WorkloadState {
                     resetMisraGries();
                 }
             }
-            return workQueue.poll();
+            if (SchedPolicy.valueOf(this.schedPolicy) == SchedPolicy.FIFO) {
+                return workQueue.poll();
+            } else {
+                SubmittedProcedure proc = workQueue.poll();
+                int index = ageQueueMap.get(proc);
+                ageQueue.remove(index);
+                return proc;
+            }
         }
     }
 
@@ -1056,6 +1091,8 @@ public class WorkloadState {
 
             // Clear the work from the previous phase.
             workQueue.clear();
+            ageQueue.clear();
+            ageQueueMap.clear();
 
             // Determine how many workers need to sleep, then make sure they
             // do.
