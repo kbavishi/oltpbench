@@ -85,8 +85,10 @@ public class WorkloadState {
     private int RESULTS_QUEUE_LIMIT;
     private double RANDOM_PAGE_COST = 4.0;
     private Queue<SubmittedProcedure> workQueue;
-    private Queue<SubmittedProcedure> ageQueue;
-    private HashMap<SubmittedProcedure, Integer> ageQueueMap;
+    private Queue<SubmittedProcedure> ageQueue =
+        new LinkedList<SubmittedProcedure>();
+    private HashMap<SubmittedProcedure, Integer> ageQueueMap =
+        new HashMap<SubmittedProcedure, Integer>();
     private HashMap<Integer, Double> costSlope = new HashMap<Integer, Double>();
     private double alpha = 0.5;
     private static double gedfFactor = 0.4;
@@ -281,15 +283,11 @@ public class WorkloadState {
             case EDF_PRED_BUF_LOC_FULL:
             case EDF_PRED_DYNAMIC:
                 workQueue = new PriorityQueue<SubmittedProcedure>(100, edfComp);
-                ageQueue = new LinkedList<SubmittedProcedure>();
-                ageQueueMap = new HashMap<SubmittedProcedure, Integer>();
                 break;
             case GEDF:
             case GEDF_PRED_BUF_LOC_FULL:
             case GEDF_PRED_DYNAMIC:
                 workQueue = new PriorityQueue<SubmittedProcedure>(100, gedfComp);
-                ageQueue = new LinkedList<SubmittedProcedure>();
-                ageQueueMap = new HashMap<SubmittedProcedure, Integer>();
                 break;
 
         }
@@ -668,7 +666,7 @@ public class WorkloadState {
             }
     
             assert amount > 0;
-            boolean isFIFO = (SchedPolicy.valueOf(this.schedPolicy) != SchedPolicy.FIFO);
+            boolean isFIFO = (SchedPolicy.valueOf(this.schedPolicy) == SchedPolicy.FIFO);
     
             // Only use the work queue if the phase is enabled and rate limited.
             if (traceReader != null && currentPhase != null) {
@@ -677,7 +675,12 @@ public class WorkloadState {
                         traceReader.getProcedures(System.nanoTime());
                     ListIterator it = list.listIterator(0);
                     while (it.hasNext()) {
-                        workQueue.add((SubmittedProcedure)it.next());
+                        SubmittedProcedure proc = (SubmittedProcedure) it.next();
+                        workQueue.add(proc);
+                        if (!isFIFO) {
+                            int index = ageQueue.size();
+                            ageQueue.add(proc);
+                            ageQueueMap.put(proc, index);
                     }
                }
            } else if (currentPhase == null || currentPhase.isDisabled()
