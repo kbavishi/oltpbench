@@ -366,7 +366,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
 
     private int indexOf(Object o) {
         if (o != null) {
-            return indexMap.get(o);
+            return indexMap.getOrDefault(o, -1);
             /*
             for (int i = 0; i < size; i++)
                 if (o.equals(queue[i]))
@@ -638,7 +638,7 @@ public class PriorityQueue<E> extends AbstractQueue<E>
             queue[i] = null;
         } else {
             E moved = (E) queue[s];
-            indexMap.remove(moved);
+            indexMap.remove(queue[s]);
             queue[s] = null;
             siftDown(i, moved);
             if (queue[i] == moved) {
