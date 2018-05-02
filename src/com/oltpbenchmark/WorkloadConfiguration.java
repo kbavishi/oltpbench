@@ -89,7 +89,6 @@ public class WorkloadConfiguration {
     public WorkloadState initializeState(BenchmarkState benchmarkState) {
         assert (workloadState == null);
         workloadState = new WorkloadState(benchmarkState, works, terminals,
-                                          this.inputTraceFile,
                                           this.schedPolicy, this.alpha,
                                           this.gedfFactor, this.predResultsHistory,
                                           this.randomPageCost, this.fixedDeadline,
