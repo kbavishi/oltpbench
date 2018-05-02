@@ -65,6 +65,7 @@ public class WorkloadConfiguration {
     private int numBins = 200;
     private int bufferSize = 750 * 1024 * 1024 / 8192;
     private int binWindowThreshold = 25 * 300;
+    private String inputTraceFile;
 
     public TraceReader getTraceReader() {
         return traceReader;
@@ -88,6 +89,7 @@ public class WorkloadConfiguration {
     public WorkloadState initializeState(BenchmarkState benchmarkState) {
         assert (workloadState == null);
         workloadState = new WorkloadState(benchmarkState, works, terminals,
+                                          this.inputTraceFile,
                                           this.schedPolicy, this.alpha,
                                           this.gedfFactor, this.predResultsHistory,
                                           this.randomPageCost, this.fixedDeadline,
@@ -106,7 +108,7 @@ public class WorkloadConfiguration {
  
 
     public void addWork(int time, int rate, List<String> weights, boolean rateLimited, boolean disabled, boolean serial, boolean timed, int active_terminals, Phase.Arrival arrival) {
-        works.add(new Phase(benchmarkName, numberOfPhases, time, rate, weights, rateLimited, this.schedPolicy, disabled, serial, timed, active_terminals, arrival));
+        works.add(new Phase(benchmarkName, numberOfPhases, time, rate, weights, rateLimited, this.schedPolicy, disabled, serial, timed, active_terminals, arrival, this.inputTraceFile));
 		numberOfPhases++;
 	}
 	
@@ -228,6 +230,14 @@ public class WorkloadConfiguration {
 	
 	public double getRandomPageCost() {
 		return this.randomPageCost;
+	}
+
+	public void setInputTraceFile(String file) {
+		this.inputTraceFile = file;
+	}
+	
+	public String getInputTraceFile() {
+		return this.inputTraceFile;
 	}
 
 	public void setFixedDeadline(boolean fixedDeadline) {

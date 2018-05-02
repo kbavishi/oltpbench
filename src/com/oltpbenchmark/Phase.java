@@ -53,11 +53,12 @@ public class Phase {
     private final int num_weights;
     private int activeTerminals;
     private int nextSerial;
+    private String inputTraceFile;
 
     private BufferedReader input;
     
 
-    Phase(String benchmarkName, int id, int t, int r, List<String> o, boolean rateLimited, int schedPolicy, boolean disabled, boolean serial, boolean timed, int activeTerminals, Arrival a) {
+    Phase(String benchmarkName, int id, int t, int r, List<String> o, boolean rateLimited, int schedPolicy, boolean disabled, boolean serial, boolean timed, int activeTerminals, Arrival a, String inputTraceFile) {
         ArrayList<Double> w = new ArrayList<Double>();
         for (String s : o)
             w.add(Double.parseDouble(s));
@@ -76,31 +77,14 @@ public class Phase {
         this.nextSerial = 1;
         this.activeTerminals = activeTerminals;
         this.arrival=a;
+        this.inputTraceFile = inputTraceFile;
 
-        loadInputFile();
+        loadInputFile(inputTraceFile);
 
     }
     
-    private void loadInputFile() {
+    private void loadInputFile(String inputFilePath) {
         // Try loading the appropriate input file 
-        String inputFilePath = null;
-        switch (SchedPolicy.valueOf(this.schedPolicy)) {
-            case FIFO:
-                inputFilePath = System.getProperty("user.home") + File.separator + "input_jobs.txt";
-                break;
-            case EDF:
-            case GEDF:
-                inputFilePath = System.getProperty("user.home") + File.separator + "input_jobs_cost.txt";
-                break;
-            case EDF_PRED_BUF_LOC_FULL:
-            case GEDF_PRED_BUF_LOC_FULL:
-            case EDF_PRED_DYNAMIC:
-            case GEDF_PRED_DYNAMIC:
-                inputFilePath = System.getProperty("user.home") + File.separator +
-                    "input_jobs_loc_cost_new.txt";
-                break;
-
-        }
         try {
             this.input = new BufferedReader(new FileReader(inputFilePath));
         } catch (FileNotFoundException e) {

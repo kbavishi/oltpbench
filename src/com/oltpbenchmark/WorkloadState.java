@@ -141,7 +141,8 @@ public class WorkloadState {
     private boolean printed = false;
 
     public WorkloadState(BenchmarkState benchmarkState, List<Phase> works, int num_terminals,
-            int schedPolicy, double alpha, double gedfFactor, int predResultsHistory,
+            int schedPolicy, double alpha,
+            double gedfFactor, int predResultsHistory,
             double randomPageCost, boolean fixedDeadline,
             long defaultDeadlineNs, int numBins, int bufferSize, int binWindowThreshold,
             TraceReader traceReader) {

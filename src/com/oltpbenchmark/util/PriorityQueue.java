@@ -677,12 +677,10 @@ public class PriorityQueue<E> extends AbstractQueue<E>
             Object e = queue[parent];
             if (key.compareTo((E) e) >= 0)
                 break;
-            indexMap.remove(queue[k]);
             queue[k] = e;
             indexMap.put(e, k);
             k = parent;
         }
-        indexMap.remove(queue[k]);
         queue[k] = key;
         indexMap.put(x, k);
     }
@@ -694,12 +692,10 @@ public class PriorityQueue<E> extends AbstractQueue<E>
             Object e = queue[parent];
             if (comparator.compare(x, (E) e) >= 0)
                 break;
-            indexMap.remove(queue[k]);
             queue[k] = e;
             indexMap.put(e, k);
             k = parent;
         }
-        indexMap.remove(queue[k]);
         queue[k] = x;
         indexMap.put(x, k);
     }
@@ -732,12 +728,10 @@ public class PriorityQueue<E> extends AbstractQueue<E>
                 c = queue[child = right];
             if (key.compareTo((E) c) <= 0)
                 break;
-            indexMap.remove(queue[k]);
             queue[k] = c;
             indexMap.put(c, k);
             k = child;
         }
-        indexMap.remove(queue[k]);
         queue[k] = key;
         indexMap.put(x, k);
     }
@@ -754,12 +748,10 @@ public class PriorityQueue<E> extends AbstractQueue<E>
                 c = queue[child = right];
             if (comparator.compare(x, (E) c) <= 0)
                 break;
-            indexMap.remove(queue[k]);
             queue[k] = c;
             indexMap.put(c, k);
             k = child;
         }
-        indexMap.remove(queue[k]);
         queue[k] = x;
         indexMap.put(x, k);
     }

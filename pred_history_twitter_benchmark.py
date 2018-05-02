@@ -35,13 +35,15 @@ def trim_first_line(csv_file):
     run_bash_cmd("tail -n +2 %s > /tmp/x.csv" % csv_file)
     run_bash_cmd("mv /tmp/x.csv %s" % csv_file)
 
-def generate_twitter_config(sched_policy, pred_history, arrival_rate=75,
-                            alpha=0.5, gedf_factor=0.4, timeout=300,
-                            fixed_deadline="false", random_page_cost=4.0,
-                            num_bins=200, buffer_size=750*1024*1024/8192,
+def generate_twitter_config(sched_policy, pred_history, input_trace_file,
+                            arrival_rate=75, alpha=0.5, gedf_factor=0.4,
+                            timeout=300, fixed_deadline="false",
+                            random_page_cost=4.0, num_bins=200,
+                            buffer_size=750*1024*1024/8192,
                             bin_window_threshold=25*300):
     os.environ["POSTGRES_IP"] = POSTGRES_IP
     os.environ["SCHED_POLICY"] = sched_policy
+    os.environ["INPUT_TRACE_FILE"] = input_trace_file
     os.environ["PRED_HISTORY"] = str(pred_history)
     os.environ["RATE"] = str(arrival_rate)
     os.environ["ALPHA"] = "%.2f" % alpha
@@ -56,8 +58,9 @@ def generate_twitter_config(sched_policy, pred_history, arrival_rate=75,
     run_bash_cmd("j2 config/twitter_config.xml.j2 | "
                  "tee config/twitter_config.xml")
 
-def run_twitter_benchmark(sched_policy, output_file, csv_file, iterations=11,
-                          pred_history=0, arrival_rate=75, alpha=0.5,
+def run_twitter_benchmark(sched_policy, input_prefix, output_file, csv_file,
+                          iterations=11, pred_history=0,
+                          arrival_rate=75, alpha=0.5,
                           gedf_factor=0.4, fixed_deadline="false",
                           random_page_cost=4.0):
     for i in xrange(iterations):
@@ -66,33 +69,28 @@ def run_twitter_benchmark(sched_policy, output_file, csv_file, iterations=11,
         restart_postgres()
 
         # Warmup by running random FIFO benchmark for 3 mins
-
-        # 1. Move input jobs file to /tmp
-        filepath = os.path.join(os.environ.get("HOME"), "input_jobs.txt")
-        os.rename(filepath, "/tmp/jobs.txt")
-        shutil.copyfile(os.path.join(os.environ.get("HOME"), "random_jobs.txt"),
-                        filepath)
-
-        # 2. Generate config
+        # 1. Generate config
         generate_twitter_config("fifo", pred_history,
+                                os.path.join(os.environ.get("HOME"),
+                                             "random_jobs.txt"),
                                 arrival_rate=arrival_rate, alpha=alpha,
                                 gedf_factor=gedf_factor,
                                 fixed_deadline=fixed_deadline,
                                 random_page_cost=random_page_cost,
                                 timeout=180)
-        # 3. Run the random FIFO benchmark
+
+        # 2. Run the random FIFO benchmark
         output = run_bash_cmd("./oltpbenchmark -b twitter "
                               "-c config/twitter_config.xml "
                               "--execute=true --histograms --output %s.%s" %
                               (csv_file, i))
-        # 4. Remove results and move back input job file
+        # 3. Remove results
         os.remove("results/%s.%s.csv" % (csv_file, i))
-        os.rename("/tmp/jobs.txt",
-                  os.path.join(os.environ.get("HOME"), "input_jobs.txt"))
 
-
-        # Now run the actual benchmark
+        # 4. Now run the actual benchmark
         generate_twitter_config(sched_policy, pred_history,
+                                os.path.join(os.environ.get("HOME"),
+                                             "%s%d.txt" % (input_prefix, i)),
                                 arrival_rate=arrival_rate, alpha=alpha,
                                 gedf_factor=gedf_factor,
                                 fixed_deadline=fixed_deadline,
@@ -111,7 +109,7 @@ def run_twitter_benchmark(sched_policy, output_file, csv_file, iterations=11,
 def main(arrival_rate, iterations, alpha, gedf_factor, fixed_deadline,
          random_page_cost):
     print "CURRENTLY TESTING: %s, %s, %s" % (arrival_rate, alpha, gedf_factor)
-    run_twitter_benchmark("fifo", "output/fifo", "fifo",
+    run_twitter_benchmark("fifo", "random_jobs", "output/fifo", "fifo",
                           iterations=iterations,
                           arrival_rate=arrival_rate, alpha=alpha,
                           gedf_factor=gedf_factor,
@@ -119,13 +117,13 @@ def main(arrival_rate, iterations, alpha, gedf_factor, fixed_deadline,
                           random_page_cost=random_page_cost)
 
     # EDF and gEDF
-    run_twitter_benchmark("edf", "output/edf", "edf",
+    run_twitter_benchmark("edf", "random_jobs_cost", "output/edf", "edf",
                           iterations=iterations,
                           arrival_rate=arrival_rate, alpha=alpha,
                           gedf_factor=gedf_factor,
                           fixed_deadline=fixed_deadline,
                           random_page_cost=random_page_cost)
-    run_twitter_benchmark("gedf", "output/gedf", "gedf",
+    run_twitter_benchmark("gedf", "random_jobs_cost", "output/gedf", "gedf",
                           iterations=iterations,
                           arrival_rate=arrival_rate, alpha=alpha,
                           gedf_factor=gedf_factor,
@@ -134,14 +132,15 @@ def main(arrival_rate, iterations, alpha, gedf_factor, fixed_deadline,
 
 
     # FULL PLA Buf-Loc EDF and gEDF
-    run_twitter_benchmark("edf_pred_buf_loc_full", "output/edf_pred_buf_loc_full",
+    run_twitter_benchmark("edf_pred_buf_loc_full", "random_jobs_loc_cost",
+                          "output/edf_pred_buf_loc_full",
                           "edf_pred_buf_loc_full", iterations=iterations,
                           arrival_rate=arrival_rate,
                           alpha=alpha, gedf_factor=gedf_factor,
                           fixed_deadline=fixed_deadline,
                           random_page_cost=random_page_cost)
 
-    run_twitter_benchmark("gedf_pred_buf_loc_full",
+    run_twitter_benchmark("gedf_pred_buf_loc_full", "random_jobs_loc_cost",
                           "output/gedf_pred_buf_loc_full",
                           "gedf_pred_buf_loc_full", iterations=iterations,
                           arrival_rate=arrival_rate,

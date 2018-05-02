@@ -220,6 +220,7 @@ public class DBWorkload {
             wrkld.setFixedDeadline(xmlConfig.getBoolean("fixed_deadline", false));
             wrkld.setDefaultDeadlineNs(xmlConfig.getLong("default_deadline_ns", 500000000));
             wrkld.setRandomPageCost(xmlConfig.getDouble("random_page_cost", 4.0));
+            wrkld.setInputTraceFile(xmlConfig.getString("input_trace_file", null));
 
             wrkld.setNumBins(xmlConfig.getInt("num_bins", 200));
             wrkld.setBufferSize(xmlConfig.getInt("buffer_size", 750*1024*1024/8192));
@@ -266,6 +267,7 @@ public class DBWorkload {
             initDebug.put("Type", wrkld.getDBType());
             initDebug.put("Driver", wrkld.getDBDriver());
             initDebug.put("URL", wrkld.getDBConnection());
+            initDebug.put("Input trace file", wrkld.getInputTraceFile());
             initDebug.put("Isolation", wrkld.getIsolationString());
             initDebug.put("Scale Factor", wrkld.getScaleFactor());
             initDebug.put("Sched Policy", wrkld.getSchedPolicy());
