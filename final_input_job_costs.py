@@ -13,7 +13,7 @@ TF_FACTOR = 4
 
 # In terms of microseconds. Raw costs returned by postgres_tune.py
 #Cs, Cr, Ct, Ci, Co = 1.0, 18.73, 0.0017, 0.0014, 0.0002
-Cs, Cr, Ct, Ci, Co = 62.211, 2781.75, 0.134, 1.817, 0.017
+Cs, Cr, Ct, Ci, Co = 1.0, 60.6847, 0.0032, 0.0035, 0.0004
 
 stats = {}
 Stats = namedtuple("Stats", ["relpages", "reltuples", "n_distinct",
@@ -131,11 +131,13 @@ def run_transaction(cur, trans_type, num):
     else:
         assert False, "Unknown transaction type: %s" % trans_type
 
-def read_input_file(cur, limit=2000000, print_pred=False):
-    f = open(os.path.join(os.getenv("HOME"), "input_jobs.txt"), "r")
+def read_input_file(cur, filepath, output_filepath, limit=2000000):
+    f = open(filepath, "r")
 
     count = 0
     line = f.readline()
+
+    f_cost = open(output_filepath, "w")
 
     while line and count < limit:
         count += 1
@@ -144,10 +146,10 @@ def read_input_file(cur, limit=2000000, print_pred=False):
         trans_type, num = map(int, line.split(","))
         cost, extra = run_transaction(cur, trans_type, num)
 
-        if extra and print_pred:
-            print "%s,%s,%.2f,%s" % (trans_type, num, cost, extra)
+        if extra:
+            f_cost.write("%s,%s,%.2f,%s\n" % (trans_type, num, cost, extra))
         else:
-            print "%s,%s,%.2f" % (trans_type, num, cost)
+            f_cost.write("%s,%s,%.2f\n" % (trans_type, num, cost))
 
         line = f.readline()
 
@@ -273,20 +275,36 @@ def create_table_stats_file(cur, table_name, attr_name=None, index_name=None):
             f.write("%s" % most_common_freqs)
 
 if __name__ == '__main__':
-    if len(sys.argv) not in [4, 5]:
+    if len(sys.argv) not in [4, 5, 6]:
         print "Incorrect arguments"
         sys.exit(1)
 
     conn = psycopg2.connect(dbname="twitter", host=sys.argv[1],
                             user=sys.argv[2], password=sys.argv[3])
     cur = conn.cursor()
-    cur.execute("CREATE EXTENSION pgstattuple")
-    cur.execute("ANALYZE")
-    create_tweets_stats_file(cur)
-    create_table_stats_file(cur, "follows", "f1", "follows_pkey")
-    create_table_stats_file(cur, "followers", "f1", "followers_pkey")
-    create_table_stats_file(cur, "user_profiles", "uid", "user_profiles_pkey")
-    create_table_stats_file(cur, "idx_tweets_uid")
 
-    print_pred = (sys.argv[4] == "true")
-    read_input_file(cur, print_pred=print_pred)
+    if len(sys.argv) == 4:
+        # Create table stats files
+        cur.execute("CREATE EXTENSION pgstattuple")
+        cur.execute("ANALYZE")
+        create_tweets_stats_file(cur)
+        create_table_stats_file(cur, "follows", "f1", "follows_pkey")
+        create_table_stats_file(cur, "followers", "f1", "followers_pkey")
+        create_table_stats_file(cur, "user_profiles", "uid", "user_profiles_pkey")
+        create_table_stats_file(cur, "idx_tweets_uid")
+
+        # Input and output files
+        filepath = os.path.join(os.getcwd(), "input_jobs.txt")
+        output_filepath = os.path.join(os.getcwd(), "input_jobs_loc_cost_new.txt")
+
+    elif len(sys.argv) == 5:
+        filepath = sys.argv[4]
+        output_filepath = os.path.join(os.getcwd(), "input_jobs_loc_cost_new.txt")
+    else:
+        filepath = sys.argv[4]
+        output_filepath = sys.argv[5]
+
+    print "READING FROM: %s" % filepath
+    print "WRITING TO: %s" % output_filepath
+
+    read_input_file(cur, filepath, print_pred=print_pred)

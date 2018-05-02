@@ -9,7 +9,7 @@ import sys
 LIMIT_FOLLOWERS = 400
 LIMIT_TWEETS_FOR_UID = 10
 
-COST_FILE = os.path.join(os.environ.get("HOME"), "input_jobs_cost.txt")
+COST_FILE = os.path.join(os.getcwd(), "input_jobs_cost.txt")
 
 def get_plan_cost(output):
     for line in output.split("\n"):
@@ -113,13 +113,13 @@ def run_transaction(cur, trans_type, num):
     else:
         assert False, "Unknown transaction type: %s" % trans_type
 
-def read_input_file(cur, limit=2000000):
-    f = open(os.path.join(os.getenv("HOME"), "input_jobs.txt"), "r")
+def read_input_file(cur, filepath, output_filepath, limit=2000000):
+    f = open(filepath, "r")
 
     count = 0
     line = f.readline()
 
-    f_cost = open(COST_FILE, "w")
+    f_cost = open(output_filepath, "w")
 
     while line and count < limit:
         count += 1
@@ -149,12 +149,26 @@ def create_table_stats_file(cur):
         f.write("%s" % most_common_freqs)
 
 if __name__ == '__main__':
-    if len(sys.argv) != 4:
+    if len(sys.argv) not in [4, 5, 6]:
         print "Incorrect arguments"
         sys.exit(1)
 
     conn = psycopg2.connect(dbname="twitter", host=sys.argv[1],
                             user=sys.argv[2], password=sys.argv[3])
     cur = conn.cursor()
-    create_table_stats_file(cur)
-    read_input_file(cur)
+
+    if len(sys.argv) == 4:
+        create_table_stats_file(cur)
+        filepath = os.path.join(os.getcwd(), "input_jobs.txt")
+        output_filepath = COST_FILE
+    elif len(sys.argv) == 5:
+        filepath = sys.argv[4]
+        output_filepath = COST_FILE
+    else:
+        filepath = sys.argv[4]
+        output_filepath = sys.argv[5]
+
+    print "READING FROM: %s" % filepath
+    print "WRITING TO: %s" % output_filepath
+
+    read_input_file(cur, filepath, output_filepath)
