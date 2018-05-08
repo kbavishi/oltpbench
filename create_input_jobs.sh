@@ -22,6 +22,7 @@ sed -i 's/(.*.java:.*) INFO  - JOB GetUserTweets: /4,/' /tmp/jobs.txt
 sed -i 's/(.*.java:.*) INFO  - JOB InsertTweet: /5,/' /tmp/jobs.txt
 mv /tmp/jobs.txt random_jobs.txt
 
+FAIL=0
 echo "Sanitizing other input jobs trace files"
 for ((i=0; i<5; i++)); do
     grep JOB "random_jobs_trace$i.txt" > /tmp/jobs.txt
