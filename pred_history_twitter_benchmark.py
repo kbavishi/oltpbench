@@ -71,8 +71,7 @@ def run_twitter_benchmark(sched_policy, input_prefix, output_file, csv_file,
         # Warmup by running random FIFO benchmark for 3 mins
         # 1. Generate config
         generate_twitter_config("fifo", pred_history,
-                                os.path.join(os.environ.get("HOME"),
-                                             "random_jobs.txt"),
+                                os.path.join(os.getcwd(), "random_jobs.txt"),
                                 arrival_rate=arrival_rate, alpha=alpha,
                                 gedf_factor=gedf_factor,
                                 fixed_deadline=fixed_deadline,
@@ -89,7 +88,7 @@ def run_twitter_benchmark(sched_policy, input_prefix, output_file, csv_file,
 
         # 4. Now run the actual benchmark
         generate_twitter_config(sched_policy, pred_history,
-                                os.path.join(os.environ.get("HOME"),
+                                os.path.join(os.getcwd(),
                                              "%s%d.txt" % (input_prefix, i)),
                                 arrival_rate=arrival_rate, alpha=alpha,
                                 gedf_factor=gedf_factor,
