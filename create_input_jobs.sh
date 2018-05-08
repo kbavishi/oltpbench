@@ -35,7 +35,7 @@ for ((i=0; i<5; i++)); do
     mv /tmp/jobs.txt random_jobs$i.txt
 
     echo "Fetching Markov model job costs for random_jobs${i}"
-    python final_input_job_costs.py $1 $2 $3 true random_jobs$i.txt random_jobs_loc_cost$i.txt &
+    python final_input_job_costs.py $1 $2 $3 random_jobs$i.txt random_jobs_loc_cost$i.txt &
 
     echo "Fetching Postgres job costs for random_jobs${i}"
     python get_input_jobs_costs.py $1 $2 $3 random_jobs$i.txt random_jobs_cost$i.txt &
