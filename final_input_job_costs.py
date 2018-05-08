@@ -307,4 +307,4 @@ if __name__ == '__main__':
     print "READING FROM: %s" % filepath
     print "WRITING TO: %s" % output_filepath
 
-    read_input_file(cur, filepath, print_pred=print_pred)
+    read_input_file(cur, filepath, output_filepath)
