@@ -1,6 +1,5 @@
 #! /usr/bin/env python
 
-import scipy.optimize as optimize
 import numpy as np
 import math
 import os
@@ -8,6 +7,7 @@ import psycopg2
 import subprocess
 import shlex
 import argparse
+from scipy import optimize as optimize
 
 # Num of buffer pages. 256 MB / 8 KB pages
 B = 900 * 1024 * 1024 / (8 * 1024)
@@ -111,22 +111,17 @@ def get_partition_sizes(cur, num_partitions):
     results = cur.fetchall()
 
     uid_list = []
+    orig_sizes = all_sizes[:]
     popular_tweets_num = 0
+    total_count = get_rel_pages(cur, "tweets")
     for uid, _ in results:
         uid_list += [uid]
         size = get_num_tweets(cur, uid)
-        all_sizes += [size]
-        popular_tweets_num += size
+        new_size = int(math.ceil(size * (1.0 - (sum(all_sizes[4:]) * 1.0 / total_count) )))
+        all_sizes += [new_size]
+        orig_sizes += [size]
+        popular_tweets_num += new_size
         print "Got tweets result for %s" % uid
-
-    total_count = get_rel_pages(cur, "tweets")
-    new_list = []
-    for i in xrange(4, len(all_sizes)):
-        size = all_sizes[i]
-        new_list += [int(math.ceil(size * (1.0 - (sum(all_sizes[4:i]) * 1.0 / total_count) )))]
-    orig_sizes = all_sizes[:]
-    popular_tweets_num = sum(new_list)
-    all_sizes = all_sizes[:4] + new_list
 
     # Last: Unpopular tweets partition
     #total_count = get_rel_pages(cur, "tweets") + \
@@ -197,7 +192,7 @@ if __name__ == '__main__':
                         help='Password to login to Postgres')
     parser.add_argument('--partitions', type=int, default=200,
                         help='Number of popular partitions')
-    parser.add_argument('--memory', type=int, default=768,
+    parser.add_argument('--memory', type=int, default=900,
                         help='Buffer pool memory in MB')
 
     args = parser.parse_args()
@@ -225,12 +220,12 @@ if __name__ == '__main__':
             #continue
             #if i>=4 and i < len(rp_vals) - 1:
             prob, prob_own = 0.0, 1.0
-            prob = (1.0 / total_count) * np_val
             for j in xrange(4, i):
-            #for j in xrange(4, len(rp_vals)-1):
                 other_np_val = get_np_val(ratio, rp_vals[j], sp_vals[j])
-                prob_own *= (1.0 - sp_vals[j] * 1.0 / total_count)
-                prob += (1.0 / total_count) * other_np_val
+                hit_prob_other = other_np_val / sp_vals[j]
+                prob_other = (sp_vals[j] * 1.0 / total_count)
+                prob_own -= prob_other
+                prob += prob_other * hit_prob_other
             prob += prob_own * hit_prob
             prob = min(1.0, prob)
             f.write("%s %s %s\n" % (uid_vals[i-4], actual_size_vals[i], prob))

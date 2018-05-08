@@ -132,22 +132,6 @@ def read_input_file(cur, filepath, output_filepath, limit=2000000):
 
         line = f.readline()
 
-def create_table_stats_file(cur):
-    cur.execute("SELECT relpages, reltuples FROM pg_class WHERE relname = 'tweets'")
-    relpages, reltuples = cur.fetchone()
-
-    cur.execute("SELECT n_distinct, most_common_vals, most_common_freqs FROM pg_stats "
-                "WHERE tablename='tweets' AND attname='uid'")
-    n_distinct, most_common_vals, most_common_freqs = cur.fetchone()
-    most_common_vals = most_common_vals.strip("{").strip("}")
-    most_common_freqs = ",".join(map(str, most_common_freqs))
-
-    with open(os.path.join(os.getenv("HOME"), "table_stats.txt"), "w") as f:
-        f.write("%s,%s\n" % (int(relpages), int(reltuples)))
-        f.write("%s\n" % int(n_distinct))
-        f.write("%s\n" % most_common_vals)
-        f.write("%s" % most_common_freqs)
-
 if __name__ == '__main__':
     if len(sys.argv) not in [4, 5, 6]:
         print "Incorrect arguments"
@@ -158,7 +142,6 @@ if __name__ == '__main__':
     cur = conn.cursor()
 
     if len(sys.argv) == 4:
-        create_table_stats_file(cur)
         filepath = os.path.join(os.getcwd(), "input_jobs.txt")
         output_filepath = COST_FILE
     elif len(sys.argv) == 5:

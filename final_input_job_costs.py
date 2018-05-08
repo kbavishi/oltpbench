@@ -282,17 +282,17 @@ if __name__ == '__main__':
     conn = psycopg2.connect(dbname="twitter", host=sys.argv[1],
                             user=sys.argv[2], password=sys.argv[3])
     cur = conn.cursor()
+    # Create table stats files
+    cur.execute("CREATE EXTENSION pgstattuple")
+    #cur.execute("ANALYZE")
+    create_tweets_stats_file(cur)
+    create_table_stats_file(cur, "follows", "f1", "follows_pkey")
+    create_table_stats_file(cur, "followers", "f1", "followers_pkey")
+    create_table_stats_file(cur, "user_profiles", "uid", "user_profiles_pkey")
+    create_table_stats_file(cur, "idx_tweets_uid")
+    cur.execute("DROP EXTENSION pgstattuple")
 
     if len(sys.argv) == 4:
-        # Create table stats files
-        cur.execute("CREATE EXTENSION pgstattuple")
-        cur.execute("ANALYZE")
-        create_tweets_stats_file(cur)
-        create_table_stats_file(cur, "follows", "f1", "follows_pkey")
-        create_table_stats_file(cur, "followers", "f1", "followers_pkey")
-        create_table_stats_file(cur, "user_profiles", "uid", "user_profiles_pkey")
-        create_table_stats_file(cur, "idx_tweets_uid")
-
         # Input and output files
         filepath = os.path.join(os.getcwd(), "input_jobs.txt")
         output_filepath = os.path.join(os.getcwd(), "input_jobs_loc_cost_new.txt")
